@@ -4,7 +4,7 @@
 |------|------------|
 |Layana Muhdi Al Tounsi|40125569|
 |Pacifique Uwamukiza|40227229|
-|Khaled Rezgui ||
+|Khaled Rezgui |40176606|
 
 ### Mini-Chess COMP 472 
 Mini Chess is a 2 player game inspired by the game chess.
