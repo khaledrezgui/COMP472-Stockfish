@@ -281,9 +281,14 @@ class MiniChess:
         # Check if a King was captured (Win Condition)
         if target_piece == 'bK':
             print("White wins! The Black King has been captured.")
+            #sets the winner of the game to 'white' if black king is captured
+            self.current_game_state['winner'] = 'white'
             exit(0)
+
         elif target_piece == 'wK':
             print("Black wins! The White King has been captured.")
+            #sets the winner of the game to black if the white king is captured
+            self.current_game_state['winner'] = 'black'
             exit(0)
 
         # Track turns with no captures
@@ -361,9 +366,10 @@ class MiniChess:
                     file.write(' '.join(row) + '\n')
                 file.write("\n")
 
-                # If the game ends, log the result
-                if "wins" in file:
-                    file.write("Game Over\n")
+                # Check if a player has won the game by capturing opponent king
+                if 'wins' in self.current_game_state:
+                    # If there a win is detected, logs the result in the game trace file
+                    file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
 
 
