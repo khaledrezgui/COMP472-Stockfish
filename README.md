@@ -13,9 +13,10 @@ The game details are as follows:
 - Two Players : Black and White
 - 6 pieces for each player 
   -  King ( K ) : Moves 1 square in any direction
-  - Queen ( Q ) : Moves diagonally in any number of squares
+  - Queen ( Q ) : Moves any number of squares in any direction
   - Knight ( N ) : Moves in an L-shape
-  - Pawns ( P ) Moves 1 square forward and captures diagonally
+    Bihsop ( B ) : Moves diagonally
+  - Pawns ( P ) : 2 per player, Moves 1 square forward and captures diagonally
 
 To Play: (H-H MODE) 
 - On your turn, move a single piece as follows :
