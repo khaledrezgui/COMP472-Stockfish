@@ -12,10 +12,10 @@ The game details are as follows:
 - 5x5 board
 - Two Players : Black and White
 -- 6 pieces for each player 
-  -  King ( K ) : Moves 1 square in any direction
+  - King ( K ) : Moves 1 square in any direction
   - Queen ( Q ) : Moves any number of squares in any direction
   - Knight ( N ) : Moves in an L-shape
-    Bihsop ( B ) : Moves diagonally
+  - Bishop ( B ) : Moves diagonally
   - Pawns ( P ) : 2 per player, Moves 1 square forward and captures diagonally
 
 
