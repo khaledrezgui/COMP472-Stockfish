@@ -266,6 +266,7 @@ class MiniChess:
         Executes a move and updates the board.
         - Checks if a King was captured (Win Condition).
         - Tracks turns without a capture (Draw Condition).
+        - Promotes pawns to queens when they reach the opposite end of the board.
         """
 
         start, end = move
@@ -301,6 +302,14 @@ class MiniChess:
         if self.no_capture_turns >= 20:  # 10 turns = 20 moves (White+Black)
             print("Draw! No pieces have been captured in the last 10 turns.")
             exit(0)
+
+        # Promote pawns to queens when they reach the opposite end of the board
+        if piece == 'wp' and end_row == 0:
+            game_state["board"][end_row][end_col] = 'wQ'
+            print("White pawn promoted to Queen!")
+        elif piece == 'bp' and end_row == 4:
+            game_state["board"][end_row][end_col] = 'bQ'
+            print("Black pawn promoted to Queen!")
 
         # Switch turns
         game_state["turn"] = "black" if game_state["turn"] == "white" else "white"
