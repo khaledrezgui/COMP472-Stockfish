@@ -44,6 +44,23 @@ class MiniChess:
         print("     A   B   C   D   E")
         print()
 
+    def evaluate_board(self, game_state):
+        """
+        Evaluates the board using heuristic e0.
+        A positive value favors white, a negative value favors black.
+        """
+        
+        piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
+        score = 0
+
+        for row in game_state["board"]:
+            for piece in row:
+                if piece != '.':
+                    value = piece_values[piece[1]]  # Get piece value
+                    score += value if piece[0] == 'w' else -value
+
+        return score
+
     """
     Check if the move is valid    
     
