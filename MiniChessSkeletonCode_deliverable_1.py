@@ -44,6 +44,32 @@ class MiniChess:
         print("     A   B   C   D   E")
         print()
 
+    def is_terminal(self, game_state):
+        """
+        Checks if the game is in a terminal state.
+        Fix: Ensures the game ends only when a valid win/draw condition occurs.
+        """
+        # Check if any King is missing
+        kings = {piece for row in game_state["board"] for piece in row if piece in ("wK", "bK")}
+        if "wK" not in kings:
+            game_state["winner"] = "black"
+            return True  # Black wins
+        if "bK" not in kings:
+            game_state["winner"] = "white"
+            return True  # White wins
+        
+        # Check for no valid moves (stalemate/loss condition)
+        if not self.valid_moves(game_state):
+            game_state["winner"] = "draw"
+            return True  # No valid moves means the game is over
+        
+        # Check draw condition
+        if self.no_capture_turns >= 20: #10 full turns
+            game_state["winner"] = "draw"
+            return True  # Draw
+        
+        return False
+
     def evaluate_board(self, game_state):
         """
         Evaluates the board using heuristic e0.
@@ -69,14 +95,18 @@ class MiniChess:
         if depth == 0 or self.is_terminal(game_state):
             return self.evaluate_board(game_state), None
 
-        best_move = None
         valid_moves = self.valid_moves(game_state)
+        if not valid_moves:  # If no valid moves exist, return game over
+            print("DEBUG: Minimax found no valid moves. Returning game over condition.")
+            return float('-inf') if maximizing_player else float('inf'), None
+
+        best_move = None
 
         if maximizing_player:  # White (Maximizing)
             max_eval = -math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move)
+                self.make_move(new_state, move, simulated=True)
                 eval, _ = self.minimax(new_state, depth - 1, alpha, beta, False)
                 if eval > max_eval:
                     max_eval = eval
@@ -90,7 +120,7 @@ class MiniChess:
             min_eval = math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move)
+                self.make_move(new_state, move, simulated=True)
                 eval, _ = self.minimax(new_state, depth - 1, alpha, beta, True)
                 if eval < min_eval:
                     min_eval = eval
@@ -99,6 +129,7 @@ class MiniChess:
                 if beta <= alpha:  # Prune
                     break
             return min_eval, best_move
+
 
     """
     Check if the move is valid    
@@ -160,7 +191,244 @@ class MiniChess:
         # If somehow it reaches here, move is invalid
         print("Invalid move: Not a recognized piece.")
         return False
+    def valid_moves(self, game_state):
+        """
+        Generates all valid moves for the current player.
+        Ensures AI does not attempt to capture its own pieces.
+        """
+        valid_moves = []
+        board = game_state["board"]
+        turn = game_state["turn"]
+        
+        for row in range(5):
+            for col in range(5):
+                piece = board[row][col]
+                if piece == '.' or (turn == 'white' and piece[0] != 'w') or (turn == 'black' and piece[0] != 'b'):
+                    continue  # Skip empty squares and opponent's pieces
+                
+                # Generate possible moves for each piece type
+                possible_moves = []
+                if piece[1] == 'K':
+                    possible_moves = [(row + dr, col + dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if dr != 0 or dc != 0]
+                elif piece[1] == 'Q':
+                    possible_moves = self.generate_straight_moves(row, col, game_state) + self.generate_diagonal_moves(row, col, game_state)
+                elif piece[1] == 'B':
+                    possible_moves = self.generate_diagonal_moves(row, col, game_state)
+                elif piece[1] == 'N':
+                    possible_moves = [(row + dr, col + dc) for dr, dc in [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]]
+                elif piece[1] == 'p':
+                    possible_moves = self.generate_pawn_moves(row, col, piece, game_state)
+                
+                # Filter valid moves (no self-capture, ensure within bounds, no king capture)
+                for move in possible_moves:
+                    end_row, end_col = move
+                    if 0 <= end_row < 5 and 0 <= end_col < 5:  # Ensure move stays within board
+                        target_piece = board[end_row][end_col]
+                        if target_piece == '.' or (target_piece[0] != piece[0] and target_piece[1] != 'K'):
+                            valid_moves.append(((row, col), (end_row, end_col)))
+        
+        return valid_moves
+    
 
+    def evaluate_board_e1(self, game_state):
+        """
+        Heuristic e1: Piece values + positional advantage.
+        Gives more importance to central squares.
+        """
+        piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
+        center_bonus = [[0, 1, 2, 1, 0],
+                        [1, 2, 3, 2, 1],
+                        [2, 3, 4, 3, 2],
+                        [1, 2, 3, 2, 1],
+                        [0, 1, 2, 1, 0]]
+        score = 0
+
+        for r in range(5):
+            for c in range(5):
+                piece = game_state["board"][r][c]
+                if piece != '.':
+                    value = piece_values[piece[1]] + center_bonus[r][c]  # Add positional bonus
+                    score += value if piece[0] == 'w' else -value
+
+        return score
+
+
+    def evaluate_board_e2(self, game_state):
+        """
+        Heuristic e2: Aggressive strategy favoring captures.
+        Rewards AI if opponent's king is exposed.
+        """
+        piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
+        score = 0
+
+        for r in range(5):
+            for c in range(5):
+                piece = game_state["board"][r][c]
+                if piece != '.':
+                    value = piece_values[piece[1]]
+                    score += value if piece[0] == 'w' else -value
+        
+        # Bonus if opponent's king has no legal moves (trapped king penalty)
+        for king, opponent in [('wK', 'b'), ('bK', 'w')]:
+            king_pos = [(r, c) for r in range(5) for c in range(5) if game_state['board'][r][c] == king]
+            if king_pos:
+                r, c = king_pos[0]
+                moves = [(r+dr, c+dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if 0 <= r+dr < 5 and 0 <= c+dc < 5]
+                if all(game_state['board'][mr][mc] != '.' and game_state['board'][mr][mc][0] == opponent for mr, mc in moves):
+                    score += 50 if king == 'bK' else -50  # White prefers trapping black's king and vice versa
+
+        return score
+
+    def generate_straight_moves(self, row, col, game_state):
+        """
+        Generates valid straight-line moves (Rook-like) for the Queen.
+        """
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
+        return self.generate_directional_moves(row, col, game_state, directions)
+
+
+    def generate_diagonal_moves(self, row, col, game_state):
+        """
+        Generates valid diagonal moves (Bishop-like) for the Queen and Bishop.
+        """
+        directions = [(1, 1), (-1, -1), (1, -1), (-1, 1)]  # Diagonal directions
+        return self.generate_directional_moves(row, col, game_state, directions)
+
+
+    def generate_directional_moves(self, row, col, game_state, directions):
+        """
+        Helper function to generate moves in a given set of directions.
+        """
+        board = game_state["board"]
+        moves = []
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while 0 <= r < 5 and 0 <= c < 5:
+                if board[r][c] == '.':
+                    moves.append((r, c))
+                elif board[r][c][0] != board[row][col][0]:
+                    moves.append((r, c))  # Capture
+                    break
+                else:
+                    break  # Blocked by own piece
+                r += dr
+                c += dc
+        return moves
+
+
+    def generate_pawn_moves(self, row, col, piece, game_state):
+        """
+        Generates valid moves for a pawn.
+        """
+        board = game_state["board"]
+        direction = -1 if piece[0] == 'w' else 1  # White moves up, Black moves down
+        moves = []
+        
+        # Normal forward move
+        if 0 <= row + direction < 5 and board[row + direction][col] == '.':
+            moves.append((row + direction, col))
+        
+        # Capture diagonally
+        for dc in [-1, 1]:
+            new_row, new_col = row + direction, col + dc
+            if 0 <= new_row < 5 and 0 <= new_col < 5 and board[new_row][new_col] != '.' and board[new_row][new_col][0] != piece[0]:
+                moves.append((new_row, new_col))
+                
+        if (piece == 'wp' and row == 1) or (piece == 'bp' and row == 3):
+            return moves
+
+        return moves
+    
+    def get_ai_move(self, game_state, depth=3, heuristic="e1"):
+        """
+        Gets the best AI move using minimax algorithm with alpha-beta pruning.
+        Ensures AI does not end the game incorrectly.
+        """
+        if heuristic == "e1":
+            self.evaluate_board = self.evaluate_board_e1
+        else:
+            self.evaluate_board = self.evaluate_board_e2
+
+        # Get valid moves
+        valid_moves = self.valid_moves(game_state)
+        if not valid_moves:
+            print("DEBUG: No valid moves available for AI.")
+            game_state["winner"] = "black" if game_state["turn"] == "white" else "white"
+            return "GAME_OVER"  # AI has no legal moves, game ends.
+
+        _, best_move = self.minimax(game_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+
+        if best_move is None:
+        
+            return valid_moves[0]  # Pick a random valid move instead of ending the game
+        
+      
+        return best_move
+    
+    def convert_move_to_notation(self, move):
+        """
+        Converts a move from tuple format ((start_row, start_col), (end_row, end_col))
+        to chess notation (e.g., (0, 1), (1, 1) -> 'B1 B2').
+        """
+        if move == "GAME_OVER":
+            return "GAME_OVER"
+        
+        start, end = move
+        start_notation = f"{chr(ord('A') + start[1])}{5 - start[0]}"
+        end_notation = f"{chr(ord('A') + end[1])}{5 - end[0]}"
+        
+        return f"{start_notation} {end_notation}"
+    
+    def play_ai_game(self, mode="AI-AI", depth=3):
+        """
+        Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
+        Uses heuristic e0 by default. If AI is involved, user can choose e1 or e2.
+        """
+        print("Starting Game...")
+
+        # Default heuristic: e0
+        self.evaluate_board = self.evaluate_board  # Keep e0 as default
+
+        # Ask for heuristics only if AI is involved
+        if mode in ["AI-AI", "H-AI"]:
+            heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
+            if heuristic_choice == "e1":
+                self.evaluate_board = self.evaluate_board_e1
+            elif heuristic_choice == "e2":
+                self.evaluate_board = self.evaluate_board_e2
+            elif heuristic_choice != "e0":
+                print("Invalid choice! Defaulting to e0.")
+
+        while True:
+            self.display_board(self.current_game_state)
+
+            if mode == "H-H":  # Human vs Human (No AI, No Heuristics)
+                move = input(f"{self.current_game_state['turn'].capitalize()} to move (e.g., B2 B3): ")
+                move = self.parse_input(move)
+                if not move or not self.is_valid_move(self.current_game_state, move):
+                    print("Invalid move. Try again.")
+                    continue
+
+            elif mode == "H-AI" and self.current_game_state["turn"] == "white":
+                move = input("Enter your move (e.g., B2 B3): ")
+                move = self.parse_input(move)
+                if not move or not self.is_valid_move(self.current_game_state, move):
+                    print("Invalid move. Try again.")
+                    continue
+            else:  # AI Move (For AI-AI or AI playing in H-AI)
+                move = self.get_ai_move(self.current_game_state, depth)
+                print(f"AI selected move: {self.convert_move_to_notation(move)}")
+
+            self.make_move(self.current_game_state, move)
+
+            if "winner" in self.current_game_state:
+                if self.current_game_state["winner"] == "draw":
+                    print("The game has reached a draw. Game over.")
+                else:
+                    print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
+                break
+
+            
     def is_valid_king(self, start, end):
         """
         King moves 1 square in any direction (horizontal, vertical, diagonal).
@@ -293,85 +561,69 @@ class MiniChess:
 
         return True
 
-    """
-    Returns a list of valid moves
+  
 
-    Args:
-        - game_state:   dictionary | Dictionary representing the current game state
-    Returns:
-        - valid moves:   list | A list of nested tuples corresponding to valid moves [((start_row, start_col),(end_row, end_col)),((start_row, start_col),(end_row, end_col))]
-    """
-    def valid_moves(self, game_state):
-        # Return a list of all the valid moves.
-        # Implement basic move validation
-        # Check for out-of-bounds, correct turn, move legality, etc
-        return
-
-    """
-    Modify to board to make a move
-
-    Args: 
-        - game_state:   dictionary | Dictionary representing the current game state
-        - move          tuple | the move to perform ((start_row, start_col),(end_row, end_col))
-    Returns:
-        - game_state:   dictionary | Dictionary representing the modified game state
-    """
-
-    def make_move(self, game_state, move):
+    def make_move(self, game_state, move, simulated=False):
         """
         Executes a move and updates the board.
-        - Checks if a King was captured (Win Condition).
-        - Tracks turns without a capture (Draw Condition).
-        - Promotes pawns to queens when they reach the opposite end of the board.
+        - Ensures AI does not make illegal self-capturing moves.
+        - Corrects pawn promotion so it only prints when a real move is played.
+        - The `simulated` flag prevents promotions from being printed during Minimax search.
         """
+        if move == "GAME_OVER":
+            return game_state  # Prevents crashing when no moves are available
 
         start, end = move
         start_row, start_col = start
         end_row, end_col = end
         piece = game_state["board"][start_row][start_col]
-        target_piece = game_state["board"][end_row][end_col]  # Check if capturing a piece
+
+        # Ensure move stays within board boundaries
+        if not (0 <= end_row < 5 and 0 <= end_col < 5):
+            if not simulated:
+                print("Error: Move out of board boundaries.")
+            return game_state  # Ignore the move
+
+        target_piece = game_state["board"][end_row][end_col]
+
+        # Prevent self-capture (should not happen with valid_moves, but double-check)
+        if target_piece != '.' and target_piece[0] == piece[0]:
+            if not simulated:
+                print("Error: AI attempted an invalid self-capturing move.")
+            return game_state  # Do not execute the move
 
         # Move the piece
         game_state["board"][start_row][start_col] = '.'
         game_state["board"][end_row][end_col] = piece
 
-        # Check if a King was captured (Win Condition)
-        if target_piece == 'bK':
-            print("White wins! The Black King has been captured.")
-            #sets the winner of the game to 'white' if black king is captured
-            self.current_game_state['winner'] = 'white'
-            exit(0)
+        # Check if a king was captured
+        if target_piece in ["wK", "bK"]:
+            game_state["winner"] = "white" if target_piece == "bK" else "black"
+            if not simulated:
+                print(f"Game Over! {game_state['winner'].capitalize()} wins by capturing the King.")
+            return game_state
 
-        elif target_piece == 'wK':
-            print("Black wins! The White King has been captured.")
-            #sets the winner of the game to black if the white king is captured
-            self.current_game_state['winner'] = 'black'
-            exit(0)
+        # **Pawn Promotion Logic** (Fix: Only print if it's not a simulation)
+        if piece == 'wp' and end_row == 0:
+            game_state["board"][end_row][end_col] = 'wQ'
+            if not simulated:
+                print("White pawn promoted to Queen!")
+        elif piece == 'bp' and end_row == 4:
+            game_state["board"][end_row][end_col] = 'bQ'
+            if not simulated:
+                print("Black pawn promoted to Queen!")
 
         # Track turns with no captures
         if target_piece == '.':
             self.no_capture_turns += 1
         else:
-            self.no_capture_turns = 0  # Reset count if a piece is captured
-
-        # If 10 full turns (20 moves) pass with no captures, declare a draw
-        if self.no_capture_turns >= 20:  # 10 turns = 20 moves (White+Black)
-            print("Draw! No pieces have been captured in the last 10 turns.")
-            exit(0)
-
-        # Promote pawns to queens when they reach the opposite end of the board
-        if piece == 'wp' and end_row == 0:
-            game_state["board"][end_row][end_col] = 'wQ'
-            print("White pawn promoted to Queen!")
-        elif piece == 'bp' and end_row == 4:
-            game_state["board"][end_row][end_col] = 'bQ'
-            print("Black pawn promoted to Queen!")
+            self.no_capture_turns = 0  # Reset if a piece was captured
 
         # Switch turns
         game_state["turn"] = "black" if game_state["turn"] == "white" else "white"
 
         return game_state
-
+    
     """
     Parse the input string and modify it into board coordinates
 
@@ -385,9 +637,15 @@ class MiniChess:
             start, end = move.split()
             start = (5-int(start[1]), ord(start[0].upper()) - ord('A'))
             end = (5-int(end[1]), ord(end[0].upper()) - ord('A'))
+
+              # Ensure the move stays within the board boundaries
+            if not (0 <= start[0] < 5 and 0 <= start[1] < 5 and 0 <= end[0] < 5 and 0 <= end[1] < 5):
+                print("Invalid move: Out of bounds.")
+                return "INVALID_MOVE"
             return (start, end)
         except:
-            return None
+            print("Invalid input format. Use format like 'B2 B3'.")
+            return "INVALID_MOVE"
 
     """
     Game loop
@@ -440,4 +698,4 @@ class MiniChess:
 
 if __name__ == "__main__":
     game = MiniChess()
-    game.play()
+    game.play_ai_game(mode="H-AI", depth=3)
