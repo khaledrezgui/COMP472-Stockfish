@@ -43,7 +43,22 @@ class MiniChess:
         print()
         print("     A   B   C   D   E")
         print()
+    '''
+    Next functions are used to prevent AI V AI from repetitve redundant moves
+    
+    '''
+    def hash_board(self, game_state):
+        '''Generates a unqieu hash for the current board state to detect repetition'''
+        return tuple(tuple(row) for row in game_state["board"])
+    def is_repetition(self):
+        '''detects if the game has entered a repetition cycle by checking if the same state has appeard 3 times'''
+        board_hash = self.hash_board(self.current_game_state)
+        self.board_history[board_hash] = self.board_history.get(board_hash, 0) + 1
 
+        if self.board_history[board_hash] >= 3:
+            return True
+        return False
+    
     def is_terminal(self, game_state):
         """
         Checks if the game is in a terminal state.
@@ -59,16 +74,17 @@ class MiniChess:
             return True  # White wins
         
         # Check for no valid moves (stalemate/loss condition)
-        if not self.valid_moves(game_state):
-            game_state["winner"] = "draw"
-            return True  # No valid moves means the game is over
+        if not self.valid_moves(game_state):        
+            return True, None  # No valid moves means the game is over
         
         # Check draw condition
-        if self.no_capture_turns >= 20: #10 full turns
-            game_state["winner"] = "draw"
-            return True  # Draw
+        if (self.no_capture_turns // 2) >= 10: #10 full turns
+            return True, None # Draw
         
-        return False
+        if self.is_repetition():
+            return True, None
+        
+        return False, None
 
     def evaluate_board(self, game_state):
         """
@@ -340,16 +356,19 @@ class MiniChess:
 
         return moves
     
-    def get_ai_move(self, game_state, depth=3, heuristic="e1"):
+    def get_ai_move(self, game_state, depth=3, heuristic="e0"):
         """
         Gets the best AI move using minimax algorithm with alpha-beta pruning.
         Ensures AI does not end the game incorrectly.
         """
+        
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
         else:
             self.evaluate_board = self.evaluate_board_e2
-
+        
+        if heuristic == "e0":
+            self.evaluate_board = self.evaluate_board 
         # Get valid moves
         valid_moves = self.valid_moves(game_state)
         if not valid_moves:
@@ -359,12 +378,18 @@ class MiniChess:
 
         _, best_move = self.minimax(game_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
 
-        if best_move is None:
-        
-            return valid_moves[0]  # Pick a random valid move instead of ending the game
-        
-      
-        return best_move
+        if best_move:
+            simulated_state = copy.deepcopy(game_state)
+            self.make_move(simulated_state, best_move, simulated=True)
+            board_hash = self.hash_board(simulated_state)
+                    
+            if self.board_history.get(board_hash, 0) >= 2:
+                print("AI avoiding repetition, selecting alternative move...")
+                for move in valid_moves:
+                     if move != best_move:  # Pick another valid move
+                        return move
+
+        return best_move if best_move else valid_moves[0]  # Return the best move or a random move
     
     def convert_move_to_notation(self, move):
         """
@@ -379,8 +404,57 @@ class MiniChess:
         end_notation = f"{chr(ord('A') + end[1])}{5 - end[0]}"
         
         return f"{start_notation} {end_notation}"
+    def play_ai_vs_ai(self, depth=3, heuristic="e0"):
+        """
+        Runs a game where AI plays against AI until someone wins or a draw occurs.
+        Alternates turns between White and Black.
+        Displays board state only after AI makes a move (not during Minimax search).
+        """
+        print("Starting AI vs AI Game...")
+        
+        # Set heuristic function
+        if heuristic == "e1":
+            self.evaluate_board = self.evaluate_board_e1
+        elif heuristic == "e2":
+            self.evaluate_board = self.evaluate_board_e2
+        else:
+            self.evaluate_board = self.evaluate_board  # Default e0
+        
+        while True:
+            #self.display_board(self.current_game_state)  # Show board before AI move
+
+            # Check if the game has ended
+            game_over, winner = self.is_terminal(self.current_game_state)
+            if game_over:
+                break
+
+            # AI chooses best move using Minimax
+            move = self.get_ai_move(self.current_game_state, depth)
+
+            if move == "GAME_OVER":
+                break  # No valid moves available
+            
+            # Print the AI's chosen move
+            print(f"AI ({self.current_game_state['turn']}) chose: {self.convert_move_to_notation(move)}")
+
+            # Apply the move and display new board state
+            self.make_move(self.current_game_state, move)
+            self.display_board(self.current_game_state)  # Show board after move
+            time.sleep(1)  # Pause briefly for readability
+
+        
+
+        # **Handle win or draw separately**
+        game_over, winner = self.is_terminal(self.current_game_state)
+        if game_over:
+            if winner:
+                print(f"AI playing as {winner} wins the game!")
+            else:
+                print("The game has ended in a draw!")
+
+
     
-    def play_ai_game(self, mode="AI-AI", depth=3):
+    def play_ai_game(self, mode, depth=3):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
         Uses heuristic e0 by default. If AI is involved, user can choose e1 or e2.
@@ -391,7 +465,7 @@ class MiniChess:
         self.evaluate_board = self.evaluate_board  # Keep e0 as default
 
         # Ask for heuristics only if AI is involved
-        if mode in ["AI-AI", "H-AI"]:
+        if mode in ["H-AI"]:
             heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
             if heuristic_choice == "e1":
                 self.evaluate_board = self.evaluate_board_e1
@@ -635,9 +709,7 @@ class MiniChess:
     def make_move(self, game_state, move, simulated=False):
         """
         Executes a move and updates the board.
-        - Ensures AI does not make illegal self-capturing moves.
-        - Corrects pawn promotion so it only prints when a real move is played.
-        - The `simulated` flag prevents promotions from being printed during Minimax search.
+        Tracks the number of turns without a capture properly.
         """
         if move == "GAME_OVER":
             return game_state  # Prevents crashing when no moves are available
@@ -646,45 +718,22 @@ class MiniChess:
         start_row, start_col = start
         end_row, end_col = end
         piece = game_state["board"][start_row][start_col]
-
-        # Ensure move stays within board boundaries
-        if not (0 <= end_row < 5 and 0 <= end_col < 5):
-            if not simulated:
-                print("Error: Move out of board boundaries.")
-            return game_state  # Ignore the move
-
         target_piece = game_state["board"][end_row][end_col]
 
-        # Prevent self-capture (should not happen with valid_moves, but double-check)
-        if target_piece != '.' and target_piece[0] == piece[0]:
-            if not simulated:
-                print("Error: AI attempted an invalid self-capturing move.")
-            return game_state  # Do not execute the move
-
         # Move the piece
-        game_state["board"][start_row][start_col] = '.'
         game_state["board"][end_row][end_col] = piece
+        game_state["board"][start_row][start_col] = '.'
 
-        # Check if a king was captured
+        # Check if a king was captured (immediate game end)
         if target_piece in ["wK", "bK"]:
             game_state["winner"] = "white" if target_piece == "bK" else "black"
             if not simulated:
                 print(f"Game Over! {game_state['winner'].capitalize()} wins by capturing the King.")
             return game_state
 
-        # **Pawn Promotion Logic** (Fix: Only print if it's not a simulation)
-        if piece == 'wp' and end_row == 0:
-            game_state["board"][end_row][end_col] = 'wQ'
-            if not simulated:
-                print("White pawn promoted to Queen!")
-        elif piece == 'bp' and end_row == 4:
-            game_state["board"][end_row][end_col] = 'bQ'
-            if not simulated:
-                print("Black pawn promoted to Queen!")
-
-        # Track turns with no captures
+        # **Fix No-Capture Turn Tracking**
         if target_piece == '.':
-            self.no_capture_turns += 1
+            self.no_capture_turns += 1  # Increment no-capture half-turns
         else:
             self.no_capture_turns = 0  # Reset if a piece was captured
 
@@ -764,8 +813,19 @@ class MiniChess:
                     file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
 
-
+                
+#uncomment this to play AI AI
+'''
 if __name__ == "__main__":
     game = MiniChess()
-    game.play_ai_vs_human(depth=3)
+    game.board_history = {}  # Initialize board state tracking
+    game.play_ai_vs_ai(depth=6, heuristic="e0")
+'''
+#uncomment this to play all other modes
+''' 
+if __name__ == "__main__":
+    game = MiniChess()
+    game.board_history = {}  # Initialize board state tracking
+    game.play_ai_game(mode="H-AI", depth=3) 
+'''
 
