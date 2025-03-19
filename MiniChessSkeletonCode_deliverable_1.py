@@ -546,7 +546,7 @@ class MiniChess:
 
         return best_move
 
-
+    '''
     def play_ai_vs_human(self, depth=3):
         """
         Runs a game where a human plays against AI.
@@ -578,7 +578,7 @@ class MiniChess:
             if "winner" in self.current_game_state:
                 print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
-
+            '''
     def is_valid_king(self, start, end):
         """
         King moves 1 square in any direction (horizontal, vertical, diagonal).
