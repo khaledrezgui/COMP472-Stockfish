@@ -454,10 +454,10 @@ class MiniChess:
 
 
     
-    def play_ai_game(self, mode, depth=3):
+    def play_ai_game(self, mode, depth):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
-        Uses heuristic e0 by default. If AI is involved, user can choose e1 or e2.
+        Uses heuristic e0 by default. 
         """
         print("Starting Game...")
 
@@ -465,7 +465,7 @@ class MiniChess:
         self.evaluate_board = self.evaluate_board  # Keep e0 as default
 
         # Ask for heuristics only if AI is involved
-        if mode in ["H-AI"]:
+        if mode in ["H-AI" ,"AI-H"]:
             heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
             if heuristic_choice == "e1":
                 self.evaluate_board = self.evaluate_board_e1
@@ -473,7 +473,14 @@ class MiniChess:
                 self.evaluate_board = self.evaluate_board_e2
             elif heuristic_choice != "e0":
                 print("Invalid choice! Defaulting to e0.")
+            # If AI-H mode, AI plays first
+        if mode == "AI-H":
+            self.display_board(self.current_game_state)
+            move = self.get_ai_move(self.current_game_state, depth)
+            print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
+            self.make_move(self.current_game_state, move)
 
+        
         while True:
             self.display_board(self.current_game_state)
 
@@ -484,15 +491,15 @@ class MiniChess:
                     print("Invalid move. Try again.")
                     continue
 
-            elif mode == "H-AI" and self.current_game_state["turn"] == "white":
+            elif mode in ["H-AI", "AI-H"] and self.current_game_state["turn"] == "white":
+                move = self.get_ai_move(self.current_game_state, depth)
+                print(f"AI selected move: {self.convert_move_to_notation(move)}")
+            else:  # Human turn
                 move = input("Enter your move (e.g., B2 B3): ")
                 move = self.parse_input(move)
                 if not move or not self.is_valid_move(self.current_game_state, move):
                     print("Invalid move. Try again.")
                     continue
-            else:  # AI Move (For AI-AI or AI playing in H-AI)
-                move = self.get_ai_move(self.current_game_state, depth)
-                print(f"AI selected move: {self.convert_move_to_notation(move)}")
 
             self.make_move(self.current_game_state, move)
 
@@ -745,7 +752,7 @@ class MiniChess:
                     file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
 
-                
+
 #uncomment this to play AI AI
 '''
 if __name__ == "__main__":
@@ -754,8 +761,7 @@ if __name__ == "__main__":
     game.play_ai_vs_ai(depth=6, heuristic="e0")
 '''
 #uncomment this to play all other modes
-''' 
 if __name__ == "__main__":
     game = MiniChess()
-    game.play_ai_game(mode="H-AI", depth=3) 
-'''
+    game.board_history = {} 
+    game.play_ai_game(mode="AI-H", depth=3) 
