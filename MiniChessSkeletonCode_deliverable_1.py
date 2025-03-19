@@ -244,12 +244,12 @@ class MiniChess:
                             valid_moves.append(((row, col), (end_row, end_col)))
         
         return valid_moves
-    
 
     def evaluate_board_e1(self, game_state):
         """
-        Heuristic e1: Piece values + positional advantage.
-        Gives more importance to central squares.
+        Heuristic e1: Positional strategy.
+        - Encourages control of the center squares.
+        - Pieces in center squares get extra weight.
         """
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         center_bonus = [[0, 1, 2, 1, 0],
@@ -257,22 +257,21 @@ class MiniChess:
                         [2, 3, 4, 3, 2],
                         [1, 2, 3, 2, 1],
                         [0, 1, 2, 1, 0]]
-        score = 0
 
+        score = 0
         for r in range(5):
             for c in range(5):
                 piece = game_state["board"][r][c]
                 if piece != '.':
-                    value = piece_values[piece[1]] + center_bonus[r][c]  # Add positional bonus
+                    value = piece_values[piece[1]] + center_bonus[r][c]
                     score += value if piece[0] == 'w' else -value
-
         return score
-
 
     def evaluate_board_e2(self, game_state):
         """
-        Heuristic e2: Aggressive strategy favoring captures.
-        Rewards AI if opponent's king is exposed.
+        Heuristic e2: Aggressive strategy.
+        - Focuses on capturing opponent’s pieces.
+        - Extra bonus if opponent's King is trapped.
         """
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
@@ -283,15 +282,17 @@ class MiniChess:
                 if piece != '.':
                     value = piece_values[piece[1]]
                     score += value if piece[0] == 'w' else -value
-        
-        # Bonus if opponent's king has no legal moves (trapped king penalty)
+
+        # Bonus if opponent’s King is trapped
         for king, opponent in [('wK', 'b'), ('bK', 'w')]:
             king_pos = [(r, c) for r in range(5) for c in range(5) if game_state['board'][r][c] == king]
             if king_pos:
                 r, c = king_pos[0]
-                moves = [(r+dr, c+dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if 0 <= r+dr < 5 and 0 <= c+dc < 5]
-                if all(game_state['board'][mr][mc] != '.' and game_state['board'][mr][mc][0] == opponent for mr, mc in moves):
-                    score += 50 if king == 'bK' else -50  # White prefers trapping black's king and vice versa
+                moves = [(r + dr, c + dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if
+                         0 <= r + dr < 5 and 0 <= c + dc < 5]
+                if all(game_state['board'][mr][mc] != '.' and game_state['board'][mr][mc][0] == opponent for mr, mc in
+                       moves):
+                    score += 50 if king == 'bK' else -50  # Bonus if opponent’s King is trapped
 
         return score
 
