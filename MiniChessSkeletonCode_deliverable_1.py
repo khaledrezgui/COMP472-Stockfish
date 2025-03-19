@@ -361,12 +361,12 @@ class MiniChess:
         Gets the best AI move using minimax algorithm with alpha-beta pruning.
         Ensures AI does not end the game incorrectly.
         """
-        """
+        
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
         else:
             self.evaluate_board = self.evaluate_board_e2
-        """
+        
         if heuristic == "e0":
             self.evaluate_board = self.evaluate_board 
         # Get valid moves
