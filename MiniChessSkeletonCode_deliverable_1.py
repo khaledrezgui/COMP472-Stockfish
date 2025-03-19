@@ -744,9 +744,10 @@ class MiniChess:
                     # If there a win is detected, logs the result in the game trace file
                     file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
-
-
+#uncomment this to play AI AI
+'''
 if __name__ == "__main__":
     game = MiniChess()
     game.board_history = {}  # Initialize board state tracking
     game.play_ai_vs_ai(depth=6, heuristic="e0")
+'''
