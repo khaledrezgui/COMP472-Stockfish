@@ -429,7 +429,75 @@ class MiniChess:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
 
-            
+    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5):
+        """
+        AI selects the best move within a given time limit.
+        - Uses minimax or alpha-beta pruning.
+        - Stops searching if max_time is reached.
+        """
+        start_time = time.time()
+
+        if heuristic == "e1":
+            self.evaluate_board = self.evaluate_board_e1
+        else:
+            self.evaluate_board = self.evaluate_board_e2
+
+        valid_moves = self.valid_moves(game_state)
+        if not valid_moves:
+            game_state["winner"] = "black" if game_state["turn"] == "white" else "white"
+            return "GAME_OVER"
+
+        best_move = valid_moves[0]
+        best_value = float('-inf')
+
+        for move in valid_moves:
+            if time.time() - start_time > max_time:
+                print("AI timeout! Selecting best move so far.")
+                break
+
+            new_state = copy.deepcopy(game_state)
+            self.make_move(new_state, move, simulated=True)
+            eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+
+            if eval_score > best_value:
+                best_value = eval_score
+                best_move = move
+
+        return best_move
+
+
+    def play_ai_vs_human(self, depth=3):
+        """
+        Runs a game where a human plays against AI.
+        - Human is White, AI is Black.
+        - AI uses minimax or alpha-beta pruning to make decisions.
+        """
+        print("Starting Human vs AI match...")
+
+        while True:
+            self.display_board(self.current_game_state)
+
+            if self.current_game_state["turn"] == "white":
+                # Human move input
+                move = input("Enter your move (e.g., B2 B3): ")
+                move = self.parse_input(move)
+                if not move or not self.is_valid_move(self.current_game_state, move):
+                    print("Invalid move. Try again.")
+                    continue
+            else:
+                # AI move
+                print("AI is making a move...")
+                move = self.get_ai_move(self.current_game_state, depth)
+                print(f"AI selected move: {self.convert_move_to_notation(move)}")
+
+            # Make the move
+            self.make_move(self.current_game_state, move)
+
+            # Check if the game ended
+            if "winner" in self.current_game_state:
+                print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
+                break
+
     def is_valid_king(self, start, end):
         """
         King moves 1 square in any direction (horizontal, vertical, diagonal).
@@ -699,4 +767,5 @@ class MiniChess:
 
 if __name__ == "__main__":
     game = MiniChess()
-    game.play_ai_game(mode="H-AI", depth=3)
+    game.play_ai_vs_human(depth=3)
+
