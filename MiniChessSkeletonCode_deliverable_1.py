@@ -8,6 +8,7 @@ class MiniChess:
         self.current_game_state = self.init_board()
         self.no_capture_turns = 0  # Track turns without a capture
         self.total_half_turns = 0 
+        self.nodes_explored = 0 # Track total nodes explored in Minimax
     """
     Initialize the board
 
@@ -113,13 +114,15 @@ class MiniChess:
     def minimax(self, game_state, depth, alpha, beta, maximizing_player):
         """
         Minimax algorithm with Alpha-Beta pruning.
+        Tracks the number of nodes explored.
         """
+        self.nodes_explored += 1  # Count this node
+
         if depth == 0 or self.is_terminal(game_state):
             return self.evaluate_board(game_state), None
 
         valid_moves = self.valid_moves(game_state)
         if not valid_moves:  # If no valid moves exist, return game over
-            print("DEBUG: Minimax found no valid moves. Returning game over condition.")
             return float('-inf') if maximizing_player else float('inf'), None
 
         best_move = None
@@ -130,16 +133,15 @@ class MiniChess:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
                 eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, False)
-                
+
                 value = max(value, eval_score)
                 if value > alpha:
                     alpha = value
                     best_move = move
-                
-                # Debug before pruning
-                if beta <= alpha:  # Prune
-                    print(f'DEBUG: Pruning at depth {depth} - Alpha-Beta Cutoff (β ≤ α) in Maximizing Player')
-                    break
+
+                # Pruning
+                if beta <= alpha:
+                    break  # Alpha-Beta cutoff
             
             return value, best_move
 
@@ -149,24 +151,26 @@ class MiniChess:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
                 eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, True)
-                
+
                 value = min(value, eval_score)
                 if value < beta:
                     beta = value
                     best_move = move
 
-                # Debug before pruning
-                if beta <= alpha:  # Prune
-                    print(f'DEBUG: Pruning at depth {depth} - Alpha-Beta Cutoff (β ≤ α) in Minimizing Player')
-                    break
-
+                # Pruning
+                if beta <= alpha:
+                    break  # Alpha-Beta cutoff
+            
             return value, best_move
 
     # Minimax without alpha-beta pruning
     def minimax_without_pruning(self, game_state, depth, maximizing_player):
         """
         Standard minimax algorithm without Alpha-Beta pruning.
+        Tracks the number of nodes explored.
         """
+        self.nodes_explored += 1  # Count this node
+
         if depth == 0 or self.is_terminal(game_state):
             return self.evaluate_board(game_state), None
 
@@ -177,26 +181,31 @@ class MiniChess:
         best_move = None
 
         if maximizing_player:  # White (Maximizing)
-            max_eval = -math.inf
+            value = -math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
-                eval, _ = self.minimax_without_pruning(new_state, depth - 1, False)
-                if eval > max_eval:
-                    max_eval = eval
+                eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, False)
+
+                value = max(value, eval_score)
+                if value > value:
                     best_move = move
-            return max_eval, best_move
+            
+            return value, best_move
 
         else:  # Black (Minimizing)
-            min_eval = math.inf
+            value = math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
-                eval, _ = self.minimax_without_pruning(new_state, depth - 1, True)
-                if eval < min_eval:
-                    min_eval = eval
+                eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, True)
+
+                value = min(value, eval_score)
+                if value < value:
                     best_move = move
-            return min_eval, best_move
+            
+            return value, best_move
+
     
     """
     Check if the move is valid    
@@ -595,11 +604,11 @@ class MiniChess:
     def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
         """
         AI selects the best move within a given time limit.
-        - Uses minimax or alpha-beta pruning based on use_alpha_beta parameter.
+        - Uses minimax or alpha-beta pruning based on use_alpha_beta.
         - Stops searching if max_time is reached.
-        - Penalizes repeated moves.
+        - Prints time taken and nodes explored.
         """
-        start_time = time.time()
+        self.nodes_explored = 0  # Reset node counter for this move
 
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
@@ -616,41 +625,38 @@ class MiniChess:
         best_move = None
         best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
 
-        for move in valid_moves:
-            if time.time() - start_time > max_time:
-                print("AI timeout! Selecting best move so far.")
-                break
+        start_time = time.time()  # Start timing just before Minimax call
 
+        for move in valid_moves:
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
 
-            # **Check if the move has been repeated before**
-            board_hash = self.hash_board(new_state)
-            repetition_penalty = -5 if self.board_history.get(board_hash, 0) > 1 else 0  # Penalize repeated moves
+            # Measure time spent on each move and stop if exceeded
+            if time.time() - start_time > max_time:
+                print(f"AI timeout! Selecting best move so far ({time.time() - start_time:.4f} sec).")
+                break
 
-            # Run minimax or alpha-beta pruning
+            # Call Minimax or Minimax without pruning
             if use_alpha_beta:
                 eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
             else:
                 eval_score, _ = self.minimax_without_pruning(new_state, depth, game_state["turn"] == "white")
 
-            eval_score += repetition_penalty  # Apply penalty for repetition
-
-            # Update best move based on evaluation score
+            # Update best move based on evaluation
             if (game_state["turn"] == "white" and eval_score > best_value) or \
-                    (game_state["turn"] == "black" and eval_score < best_value):
+            (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
 
-        # Update board history
-        board_hash = self.hash_board(game_state)
-        self.board_history[board_hash] = self.board_history.get(board_hash, 0) + 1
+        end_time = time.time()  # ✅ Stop timing after Minimax completes
+        elapsed_time = end_time - start_time  # ✅ Calculate time taken
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"AI ({game_state['turn']}) took {elapsed_time:.3f} seconds to select a move.")
+        # Print results for comparison
+        print(f"AI ({game_state['turn']}) took {elapsed_time:.4f} seconds to select a move.")
+        print(f"AI explored {self.nodes_explored} nodes using {'Alpha-Beta Pruning' if use_alpha_beta else 'Standard Minimax'}.")
 
         return best_move
+
 
     def is_valid_king(self, start, end):
         """
