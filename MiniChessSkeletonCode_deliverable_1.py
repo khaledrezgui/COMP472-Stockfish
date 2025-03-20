@@ -629,6 +629,10 @@ class MiniChess:
             (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
+        
+        end_time = time.time()  
+        elapsed_time = end_time - start_time
+        print(f"AI ({game_state['turn']}) took {elapsed_time:.3f} seconds to select a move.")
 
         return best_move
 
