@@ -7,7 +7,7 @@ class MiniChess:
     def __init__(self):
         self.current_game_state = self.init_board()
         self.no_capture_turns = 0  # Track turns without a capture
-
+        self.total_half_turns = 0 
     """
     Initialize the board
 
@@ -401,6 +401,11 @@ class MiniChess:
 
         return moves
     
+    #helper fxn that were gonna use to keep track of uncaptured pieces for turns
+    def count_pieces(self, game_state):
+            """Counts the total number of pieces on the board."""
+            return sum(1 for row in game_state["board"] for piece in row if piece != '.')
+
     def convert_move_to_notation(self, move):
         """
         Converts a move from tuple format ((start_row, start_col), (end_row, end_col))
@@ -437,6 +442,12 @@ class MiniChess:
             # Check if the game has ended
             game_over, winner = self.is_terminal(self.current_game_state)
             if game_over:
+                break
+
+            # **Check if max_turns has been reached**
+            if self.total_half_turns >= max_turns * 2:
+                print(f"Game ended in a draw due to reaching {max_turns} turns.")
+                self.current_game_state["winner"] = "draw"
                 break
 
             # AI chooses best move using Minimax
@@ -493,6 +504,12 @@ class MiniChess:
 
         while True:
             self.display_board(self.current_game_state)
+
+            # **Check if max_turns has been reached**
+            if self.total_half_turns >= max_turns * 2:
+                print(f"Game ended in a draw due to reaching {max_turns} turns.")
+                self.current_game_state["winner"] = "draw"
+                break
 
             if mode == "H-H":  # Human vs Human (No AI, No Heuristics)
                 move = input(f"{self.current_game_state['turn'].capitalize()} to move (e.g., B2 B3): ")
@@ -717,6 +734,8 @@ class MiniChess:
         """
         if move == "GAME_OVER":
             return game_state  # Prevents crashing when no moves are available
+        # Store piece count before the move - used for tracking piece number before a capture for draw condition
+        previous_piece_count = self.count_pieces(game_state)
 
         start, end = move
         start_row, start_col = start
@@ -734,6 +753,11 @@ class MiniChess:
             if not simulated:
                 print(f"Game Over! {game_state['winner'].capitalize()} wins by capturing the King.")
             return game_state
+        
+        # **Check if a piece was captured**
+        new_piece_count = self.count_pieces(game_state)
+        if new_piece_count < previous_piece_count:  # If a piece was removed
+            self.total_half_turns = 0  # Reset turn counter
 
         # **Fix No-Capture Turn Tracking**
         if target_piece == '.':
@@ -749,6 +773,10 @@ class MiniChess:
             game_state["board"][end_row][end_col] = 'bQ'
             print("Black pawn promoted to Queen!")
         # Switch turns
+            # **Increase total turn count**
+        if not simulated:
+            self.total_half_turns += 1
+
         game_state["turn"] = "black" if game_state["turn"] == "white" else "white"
 
         return game_state
