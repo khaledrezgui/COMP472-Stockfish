@@ -104,6 +104,7 @@ class MiniChess:
         return score
 
 
+    # Minimax Algorithm with Alpha-Beta Pruning
     def minimax(self, game_state, depth, alpha, beta, maximizing_player):
         """
         Minimax algorithm with Alpha-Beta pruning.
@@ -146,7 +147,43 @@ class MiniChess:
                     break
             return min_eval, best_move
 
+    # Minimax without alpha-beta pruning
 
+    def minimax_without_pruning(self, game_state, depth, maximizing_player):
+        """
+        Standard minimax algorithm without Alpha-Beta pruning.
+        """
+        if depth == 0 or self.is_terminal(game_state):
+            return self.evaluate_board(game_state), None
+
+        valid_moves = self.valid_moves(game_state)
+        if not valid_moves:  # If no valid moves exist, return game over
+            return float('-inf') if maximizing_player else float('inf'), None
+
+        best_move = None
+
+        if maximizing_player:  # White (Maximizing)
+            max_eval = -math.inf
+            for move in valid_moves:
+                new_state = copy.deepcopy(game_state)
+                self.make_move(new_state, move, simulated=True)
+                eval, _ = self.minimax_without_pruning(new_state, depth - 1, False)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+            return max_eval, best_move
+
+        else:  # Black (Minimizing)
+            min_eval = math.inf
+            for move in valid_moves:
+                new_state = copy.deepcopy(game_state)
+                self.make_move(new_state, move, simulated=True)
+                eval, _ = self.minimax_without_pruning(new_state, depth - 1, True)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+            return min_eval, best_move
+    
     """
     Check if the move is valid    
     
