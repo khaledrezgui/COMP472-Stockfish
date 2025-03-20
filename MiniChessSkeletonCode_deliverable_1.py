@@ -104,6 +104,7 @@ class MiniChess:
         return score
 
 
+    # Minimax Algorithm with Alpha-Beta Pruning
     def minimax(self, game_state, depth, alpha, beta, maximizing_player):
         """
         Minimax algorithm with Alpha-Beta pruning.
@@ -146,7 +147,43 @@ class MiniChess:
                     break
             return min_eval, best_move
 
+    # Minimax without alpha-beta pruning
 
+    def minimax_without_pruning(self, game_state, depth, maximizing_player):
+        """
+        Standard minimax algorithm without Alpha-Beta pruning.
+        """
+        if depth == 0 or self.is_terminal(game_state):
+            return self.evaluate_board(game_state), None
+
+        valid_moves = self.valid_moves(game_state)
+        if not valid_moves:  # If no valid moves exist, return game over
+            return float('-inf') if maximizing_player else float('inf'), None
+
+        best_move = None
+
+        if maximizing_player:  # White (Maximizing)
+            max_eval = -math.inf
+            for move in valid_moves:
+                new_state = copy.deepcopy(game_state)
+                self.make_move(new_state, move, simulated=True)
+                eval, _ = self.minimax_without_pruning(new_state, depth - 1, False)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+            return max_eval, best_move
+
+        else:  # Black (Minimizing)
+            min_eval = math.inf
+            for move in valid_moves:
+                new_state = copy.deepcopy(game_state)
+                self.make_move(new_state, move, simulated=True)
+                eval, _ = self.minimax_without_pruning(new_state, depth - 1, True)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+            return min_eval, best_move
+    
     """
     Check if the move is valid    
     
@@ -386,10 +423,10 @@ class MiniChess:
             if self.board_history.get(board_hash, 0) >= 2:
                 print("AI avoiding repetition, selecting alternative move...")
                 for move in valid_moves:
-                     if move != best_move:  # Pick another valid move
+                     if move != best_move:  
                         return move
 
-        return best_move if best_move else valid_moves[0]  # Return the best move or a random move
+        return best_move if best_move else valid_moves[0]  
     
     def convert_move_to_notation(self, move):
         """
@@ -404,7 +441,8 @@ class MiniChess:
         end_notation = f"{chr(ord('A') + end[1])}{5 - end[0]}"
         
         return f"{start_notation} {end_notation}"
-    def play_ai_vs_ai(self, depth=3, heuristic="e0"):
+    
+    def play_ai_vs_ai(self, depth=3, heuristic="e0", max_time=5, max_turns=10, use_alpha_beta=True):
         """
         Runs a game where AI plays against AI until someone wins or a draw occurs.
         Alternates turns between White and Black.
@@ -453,8 +491,7 @@ class MiniChess:
                 print("The game has ended in a draw!")
 
 
-    
-    def play_ai_game(self, mode, depth):
+    def play_ai_game(self, mode, depth, max_time=5, max_turns=10, use_alpha_beta=True):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
         Uses heuristic e0 by default. 
@@ -476,7 +513,7 @@ class MiniChess:
             # If AI-H mode, AI plays first
         if mode == "AI-H":
             self.display_board(self.current_game_state)
-            move = self.get_ai_move(self.current_game_state, depth)
+            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
             print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
             self.make_move(self.current_game_state, move)
 
@@ -521,18 +558,20 @@ class MiniChess:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
 
-    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5):
+    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
         """
         AI selects the best move within a given time limit.
-        - Uses minimax or alpha-beta pruning.
+        - Uses minimax or alpha-beta pruning based on use_alpha_beta parameter.
         - Stops searching if max_time is reached.
         """
         start_time = time.time()
 
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
-        else:
+        elif heuristic == "e2":
             self.evaluate_board = self.evaluate_board_e2
+        else:
+            self.evaluate_board = self.evaluate_board  # Default e0
 
         valid_moves = self.valid_moves(game_state)
         if not valid_moves:
@@ -540,7 +579,7 @@ class MiniChess:
             return "GAME_OVER"
 
         best_move = valid_moves[0]
-        best_value = float('-inf')
+        best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
 
         for move in valid_moves:
             if time.time() - start_time > max_time:
@@ -549,9 +588,16 @@ class MiniChess:
 
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
-            eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+            
+            # Choose between minimax algorithms based on use_alpha_beta parameter
+            if use_alpha_beta:
+                eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+            else:
+                eval_score, _ = self.minimax_without_pruning(new_state, depth, game_state["turn"] == "white")
 
-            if eval_score > best_value:
+            # Update best move based on the evaluation score
+            if (game_state["turn"] == "white" and eval_score > best_value) or \
+            (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
 
@@ -799,7 +845,7 @@ class MiniChess:
         - None
     """
 
-    def play(self):
+    def play(self,max_turns=10):
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
 
         # Open a game trace file for writing
@@ -839,17 +885,49 @@ class MiniChess:
                     break
 
 
-#uncomment this to play AI AI
 
 if __name__ == "__main__":
     game = MiniChess()
-    game.board_history = {}  # Initialize board state tracking
-    game.play_ai_vs_ai(depth=6, heuristic="e0")
-    
-#uncomment this to play all other modes
-"""if __name__ == "__main__":
-    game = MiniChess()
-    game.board_history = {} 
-    game.play_ai_game(mode="H-H", depth=3) 
+    game.board_history = {}  
 
-"""
+    # Prompt user for game parameters
+    print("Set game parameters:")
+
+    # Time limit per move
+    max_time = float(input("Enter maximum allowed time per move (in seconds, default: 5): ").strip() or "5")
+
+    # Maximum turns before game ends in a draw
+    max_turns = int(input("Enter maximum number of turns before the game is declared a draw (default: 10): ").strip() or "10")
+
+    # Choose between minimax or alpha-beta pruning
+    use_alpha_beta = input("Use Alpha-Beta pruning? (True/False, default: True): ").strip().lower()
+    use_alpha_beta = use_alpha_beta in ["true", "yes", "1", ""]
+
+    print("\nSelect game mode:")
+    print("1 - AI vs AI")
+    print("2 - AI (White) vs Human (Black)")
+    print("3 - Human (White) vs AI (Black)")
+    print("4 - Human vs Human")
+
+    mode_selection = input("Enter the number corresponding to your choice: ").strip()
+
+    if mode_selection == "1":
+        depth = int(input("Enter search depth for AI vs AI (recommended: 6): ").strip() or "6")
+        heuristic = input("Choose heuristic (e0 for basic, e1 for positional, e2 for aggressive captures): ").strip().lower() or "e0"
+        game.play_ai_vs_ai(depth=depth, heuristic=heuristic, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "2":
+        depth = int(input("Enter AI search depth (recommended: 3): ").strip() or "3")
+        game.play_ai_game(mode="AI-H", depth=depth, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "3":
+        depth = int(input("Enter AI search depth (recommended: 3): ").strip() or "3")
+        game.play_ai_game(mode="H-AI", depth=depth, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "4":
+        game.play(max_turns=max_turns)  
+
+    else:
+        print("Invalid selection. Defaulting to Human vs Human mode.")
+        game.play(max_turns=max_turns)
+
