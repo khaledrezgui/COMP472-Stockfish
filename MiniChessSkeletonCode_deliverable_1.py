@@ -50,15 +50,21 @@ class MiniChess:
     def hash_board(self, game_state):
         '''Generates a unique hash for the current board state to detect repetition'''
         return tuple(tuple(row) for row in game_state["board"])
+
     def is_repetition(self):
-        '''detects if the game has entered a repetition cycle by checking if the same state has appeard 3 times'''
+        """
+        Detects if the game has entered a repetition cycle (3 times).
+        If repetition occurs, penalizes the AI and forces a different move.
+        """
         board_hash = self.hash_board(self.current_game_state)
         self.board_history[board_hash] = self.board_history.get(board_hash, 0) + 1
 
         if self.board_history[board_hash] >= 3:
+            print("Repetition detected! Penalizing AI and forcing different moves.")
             return True
+
         return False
-    
+
     def is_terminal(self, game_state):
         """
         Checks if the game is in a terminal state.
@@ -292,52 +298,89 @@ class MiniChess:
 
     def evaluate_board_e1(self, game_state):
         """
-        Heuristic e1: Positional strategy.
-        - Encourages control of the center squares.
-        - Pieces in center squares get extra weight.
+        Heuristic e1: Strategic Positional Play
+        - Rewards controlling the center.
+        - Penalizes repeating positions.
+        - Encourages piece mobility.
         """
+
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
-        center_bonus = [[0, 1, 2, 1, 0],
-                        [1, 2, 3, 2, 1],
-                        [2, 3, 4, 3, 2],
-                        [1, 2, 3, 2, 1],
-                        [0, 1, 2, 1, 0]]
+        center_bonus = [[0, 1, 3, 1, 0],
+                        [1, 2, 4, 2, 1],
+                        [3, 4, 6, 4, 3],
+                        [1, 2, 4, 2, 1],
+                        [0, 1, 3, 1, 0]]
 
         score = 0
+
         for r in range(5):
             for c in range(5):
                 piece = game_state["board"][r][c]
                 if piece != '.':
                     value = piece_values[piece[1]] + center_bonus[r][c]
                     score += value if piece[0] == 'w' else -value
+
+        # Penalize repeated board states
+        board_hash = self.hash_board(game_state)
+        repetition_penalty = -10 if self.board_history.get(board_hash, 0) > 1 else 0
+        score += repetition_penalty
+
+        # Encourage mobility
+        valid_moves = self.valid_moves(game_state)
+        score += len(valid_moves) * (1.0 if game_state["turn"] == "white" else -1.0)
+
         return score
 
     def evaluate_board_e2(self, game_state):
         """
-        Heuristic e2: Aggressive strategy.
-        - Focuses on capturing opponent’s pieces.
-        - Extra bonus if opponent's King is trapped.
+        Heuristic e2: Aggressive Play
+        - Prioritizes capturing opponent’s high-value pieces.
+        - Encourages attacking the opponent's King.
+        - Encourages open, aggressive play and piece activity.
+        - Penalizes passive moves (staying in the same place).
         """
+
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
+        king_positions = {'w': None, 'b': None}
 
+        # Evaluate piece positions
         for r in range(5):
             for c in range(5):
                 piece = game_state["board"][r][c]
                 if piece != '.':
                     value = piece_values[piece[1]]
                     score += value if piece[0] == 'w' else -value
+                    if piece[1] == 'K':
+                        king_positions[piece[0]] = (r, c)
 
-        # Bonus if opponent’s King is trapped
-        for king, opponent in [('wK', 'b'), ('bK', 'w')]:
-            king_pos = [(r, c) for r in range(5) for c in range(5) if game_state['board'][r][c] == king]
-            if king_pos:
-                r, c = king_pos[0]
-                moves = [(r + dr, c + dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if
-                         0 <= r + dr < 5 and 0 <= c + dc < 5]
-                if all(game_state['board'][mr][mc] != '.' and game_state['board'][mr][mc][0] == opponent for mr, mc in
-                       moves):
-                    score += 50 if king == 'bK' else -50  # Bonus if opponent’s King is trapped
+        # Increase **weight for capturing opponent’s high-value pieces**
+        for move in self.valid_moves(game_state):
+            _, (end_r, end_c) = move
+            target_piece = game_state["board"][end_r][end_c]
+            if target_piece != '.':
+                capture_value = piece_values.get(target_piece[1], 0)
+                score += (capture_value * 4) if game_state["turn"] == 'white' else (-capture_value * 4)
+
+        # **King Safety: Penalize exposed kings**
+        for color, (kr, kc) in king_positions.items():
+            if kr is None:
+                continue  # King is already captured
+
+            opponent = 'b' if color == 'w' else 'w'
+            attack_bonus = sum(
+                20 for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                if 0 <= kr + dr < 5 and 0 <= kc + dc < 5 and game_state["board"][kr + dr][kc + dc].startswith(opponent)
+            )
+            score += attack_bonus if color == 'b' else -attack_bonus
+
+        # **Encourage piece mobility**
+        score += len(self.valid_moves(game_state)) * (1.2 if game_state["turn"] == 'white' else -1.2)
+
+        # **Penalize passive moves (repetitive board states)**
+        board_hash = self.hash_board(game_state)
+        repetition_penalty = self.board_history.get(board_hash, 0) * 15
+        score -= repetition_penalty if game_state["turn"] == 'white' else -repetition_penalty
 
         return score
 
@@ -549,12 +592,12 @@ class MiniChess:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
 
-
     def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
         """
         AI selects the best move within a given time limit.
         - Uses minimax or alpha-beta pruning based on use_alpha_beta parameter.
         - Stops searching if max_time is reached.
+        - Penalizes repeated moves.
         """
         start_time = time.time()
 
@@ -570,7 +613,7 @@ class MiniChess:
             game_state["winner"] = "black" if game_state["turn"] == "white" else "white"
             return "GAME_OVER"
 
-        best_move = valid_moves[0]
+        best_move = None
         best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
 
         for move in valid_moves:
@@ -581,19 +624,29 @@ class MiniChess:
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
 
-            # Debugging print statements for Minimax vs Alpha-Beta
+            # **Check if the move has been repeated before**
+            board_hash = self.hash_board(new_state)
+            repetition_penalty = -5 if self.board_history.get(board_hash, 0) > 1 else 0  # Penalize repeated moves
+
+            # Run minimax or alpha-beta pruning
             if use_alpha_beta:
                 eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
             else:
                 eval_score, _ = self.minimax_without_pruning(new_state, depth, game_state["turn"] == "white")
 
-            # Update best move based on the evaluation score
+            eval_score += repetition_penalty  # Apply penalty for repetition
+
+            # Update best move based on evaluation score
             if (game_state["turn"] == "white" and eval_score > best_value) or \
-            (game_state["turn"] == "black" and eval_score < best_value):
+                    (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
-        
-        end_time = time.time()  
+
+        # Update board history
+        board_hash = self.hash_board(game_state)
+        self.board_history[board_hash] = self.board_history.get(board_hash, 0) + 1
+
+        end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"AI ({game_state['turn']}) took {elapsed_time:.3f} seconds to select a move.")
 

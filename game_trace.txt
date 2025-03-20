@@ -1,0 +1,3 @@
+Mini Chess Game Trace
+Mode: Human vs Human
+
