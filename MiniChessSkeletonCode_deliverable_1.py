@@ -469,7 +469,7 @@ class MiniChess:
         self.evaluate_board = self.evaluate_board  # Keep e0 as default
 
         # Ask for heuristics only if AI is involved
-        if mode in ["H-AI" ,"AI-H"]:
+        if mode in ["H-AI", "AI-H"]:
             heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
             if heuristic_choice == "e1":
                 self.evaluate_board = self.evaluate_board_e1
@@ -477,14 +477,14 @@ class MiniChess:
                 self.evaluate_board = self.evaluate_board_e2
             elif heuristic_choice != "e0":
                 print("Invalid choice! Defaulting to e0.")
-            # If AI-H mode, AI plays first
+
+        # AI moves first if AI-H mode
         if mode == "AI-H":
             self.display_board(self.current_game_state)
             move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
             print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
             self.make_move(self.current_game_state, move)
 
-        
         while True:
             self.display_board(self.current_game_state)
 
@@ -503,8 +503,9 @@ class MiniChess:
                         print("Invalid move. Try again.")
                         continue
                 else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth)
+                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
                     print(f"AI selected move: {self.convert_move_to_notation(move)}")
+
             elif mode == "AI-H":  # AI started first, now human plays
                 if self.current_game_state["turn"] == "black":  # AI is White, human plays Black
                     move = input("Enter your move (e.g., B2 B3): ")
@@ -513,7 +514,7 @@ class MiniChess:
                         print("Invalid move. Try again.")
                         continue
                 else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth)
+                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
                     print(f"AI selected move: {self.convert_move_to_notation(move)}")
 
             self.make_move(self.current_game_state, move)
@@ -524,6 +525,7 @@ class MiniChess:
                 else:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
+
 
     def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
         """
@@ -555,8 +557,8 @@ class MiniChess:
 
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
-            
-            # Choose between minimax algorithms based on use_alpha_beta parameter
+
+            # Debugging print statements for Minimax vs Alpha-Beta
             if use_alpha_beta:
                 eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
             else:
