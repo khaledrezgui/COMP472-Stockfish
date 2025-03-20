@@ -441,7 +441,8 @@ class MiniChess:
         end_notation = f"{chr(ord('A') + end[1])}{5 - end[0]}"
         
         return f"{start_notation} {end_notation}"
-    def play_ai_vs_ai(self, depth=3, heuristic="e0"):
+    
+    def play_ai_vs_ai(self, depth=3, heuristic="e0", max_time=5, max_turns=10, use_alpha_beta=True):
         """
         Runs a game where AI plays against AI until someone wins or a draw occurs.
         Alternates turns between White and Black.
@@ -490,8 +491,7 @@ class MiniChess:
                 print("The game has ended in a draw!")
 
 
-    
-    def play_ai_game(self, mode, depth):
+    def play_ai_game(self, mode, depth, max_time, max_turns, use_alpha_beta):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
         Uses heuristic e0 by default. 
@@ -818,7 +818,7 @@ class MiniChess:
         - None
     """
 
-    def play(self):
+    def play(self,max_turns=10):
         print("Welcome to Mini Chess! Enter moves as 'B2 B3'. Type 'exit' to quit.")
 
         # Open a game trace file for writing
@@ -858,17 +858,47 @@ class MiniChess:
                     break
 
 
-#uncomment this to play AI AI
-'''
 if __name__ == "__main__":
     game = MiniChess()
-    game.board_history = {}  # Initialize board state tracking
-    game.play_ai_vs_ai(depth=6, heuristic="e0")
-'''
-#uncomment this to play all other modes
-if __name__ == "__main__":
-    game = MiniChess()
-    game.board_history = {} 
-    game.play_ai_game(mode="AI-H", depth=3) 
+    game.board_history = {}  
 
+    # Prompt user for game parameters
+    print("Set game parameters:")
 
+    # Time limit per move
+    max_time = float(input("Enter maximum allowed time per move (in seconds, default: 5): ").strip() or "5")
+
+    # Maximum turns before game ends in a draw
+    max_turns = int(input("Enter maximum number of turns before the game is declared a draw (default: 10): ").strip() or "10")
+
+    # Choose between minimax or alpha-beta pruning
+    use_alpha_beta = input("Use Alpha-Beta pruning? (True/False, default: True): ").strip().lower()
+    use_alpha_beta = use_alpha_beta in ["true", "yes", "1", ""]
+
+    print("\nSelect game mode:")
+    print("1 - AI vs AI")
+    print("2 - AI (White) vs Human (Black)")
+    print("3 - Human (White) vs AI (Black)")
+    print("4 - Human vs Human")
+
+    mode_selection = input("Enter the number corresponding to your choice: ").strip()
+
+    if mode_selection == "1":
+        depth = int(input("Enter search depth for AI vs AI (recommended: 6): ").strip() or "6")
+        heuristic = input("Choose heuristic (e0 for basic, e1 for positional, e2 for aggressive captures): ").strip().lower() or "e0"
+        game.play_ai_vs_ai(depth=depth, heuristic=heuristic, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "2":
+        depth = int(input("Enter AI search depth (recommended: 3): ").strip() or "3")
+        game.play_ai_game(mode="AI-H", depth=depth, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "3":
+        depth = int(input("Enter AI search depth (recommended: 3): ").strip() or "3")
+        game.play_ai_game(mode="H-AI", depth=depth, max_time=max_time, max_turns=max_turns, use_alpha_beta=use_alpha_beta)
+
+    elif mode_selection == "4":
+        game.play(max_turns=max_turns)  
+
+    else:
+        print("Invalid selection. Defaulting to Human vs Human mode.")
+        game.play(max_turns=max_turns)
