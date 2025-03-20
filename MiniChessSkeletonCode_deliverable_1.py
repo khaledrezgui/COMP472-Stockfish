@@ -103,7 +103,6 @@ class MiniChess:
 
         return score
 
-
     # Minimax Algorithm with Alpha-Beta Pruning
     def minimax(self, game_state, depth, alpha, beta, maximizing_player):
         """
@@ -130,7 +129,9 @@ class MiniChess:
                     best_move = move
                 alpha = max(alpha, eval)
                 if beta <= alpha:  # Prune
+                    print('DEBUG: Maximizing Alpha-Beta Pruning at White.')
                     break
+            print('DEBUG: Maximizing Alpha-Beta Pruning at White.')
             return max_eval, best_move
 
         else:  # Black (Minimizing)
@@ -144,11 +145,12 @@ class MiniChess:
                     best_move = move
                 beta = min(beta, eval)
                 if beta <= alpha:  # Prune
+                    print('DEBUG: Minimizing Alpha-Beta Pruning at Black.')
                     break
+            print('DEBUG: Minimizing Alpha-Beta Pruning at Black.')
             return min_eval, best_move
 
     # Minimax without alpha-beta pruning
-
     def minimax_without_pruning(self, game_state, depth, maximizing_player):
         """
         Standard minimax algorithm without Alpha-Beta pruning.
@@ -392,41 +394,6 @@ class MiniChess:
             return moves
 
         return moves
-    
-    def get_ai_move(self, game_state, depth=3, heuristic="e0"):
-        """
-        Gets the best AI move using minimax algorithm with alpha-beta pruning.
-        Ensures AI does not end the game incorrectly.
-        """
-        
-        if heuristic == "e1":
-            self.evaluate_board = self.evaluate_board_e1
-        else:
-            self.evaluate_board = self.evaluate_board_e2
-        
-        if heuristic == "e0":
-            self.evaluate_board = self.evaluate_board 
-        # Get valid moves
-        valid_moves = self.valid_moves(game_state)
-        if not valid_moves:
-            print("DEBUG: No valid moves available for AI.")
-            game_state["winner"] = "black" if game_state["turn"] == "white" else "white"
-            return "GAME_OVER"  # AI has no legal moves, game ends.
-
-        _, best_move = self.minimax(game_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
-
-        if best_move:
-            simulated_state = copy.deepcopy(game_state)
-            self.make_move(simulated_state, best_move, simulated=True)
-            board_hash = self.hash_board(simulated_state)
-                    
-            if self.board_history.get(board_hash, 0) >= 2:
-                print("AI avoiding repetition, selecting alternative move...")
-                for move in valid_moves:
-                     if move != best_move:  
-                        return move
-
-        return best_move if best_move else valid_moves[0]  
     
     def convert_move_to_notation(self, move):
         """
@@ -734,8 +701,6 @@ class MiniChess:
                     return False
 
         return True
-
-  
 
     def make_move(self, game_state, move, simulated=False):
         """
