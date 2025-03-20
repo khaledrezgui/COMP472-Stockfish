@@ -451,7 +451,7 @@ class MiniChess:
                 break
 
             # AI chooses best move using Minimax
-            move = self.get_ai_move(self.current_game_state, depth)
+            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
 
             if move == "GAME_OVER":
                 break  # No valid moves available
@@ -592,6 +592,10 @@ class MiniChess:
             (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
+        
+        end_time = time.time()  
+        elapsed_time = end_time - start_time
+        print(f"AI ({game_state['turn']}) took {elapsed_time:.3f} seconds to select a move.")
 
         return best_move
 
