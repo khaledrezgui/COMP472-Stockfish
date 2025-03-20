@@ -48,7 +48,7 @@ class MiniChess:
     
     '''
     def hash_board(self, game_state):
-        '''Generates a unqieu hash for the current board state to detect repetition'''
+        '''Generates a unique hash for the current board state to detect repetition'''
         return tuple(tuple(row) for row in game_state["board"])
     def is_repetition(self):
         '''detects if the game has entered a repetition cycle by checking if the same state has appeard 3 times'''
@@ -528,15 +528,26 @@ class MiniChess:
                     print("Invalid move. Try again.")
                     continue
 
-            elif mode in ["H-AI", "AI-H"] and self.current_game_state["turn"] == "white":
-                move = self.get_ai_move(self.current_game_state, depth)
-                print(f"AI selected move: {self.convert_move_to_notation(move)}")
-            else:  # Human turn
-                move = input("Enter your move (e.g., B2 B3): ")
-                move = self.parse_input(move)
-                if not move or not self.is_valid_move(self.current_game_state, move):
-                    print("Invalid move. Try again.")
-                    continue
+            if mode == "H-AI":
+                if self.current_game_state["turn"] == "white":  # Human starts in H-AI
+                    move = input("Enter your move (e.g., B2 B3): ")
+                    move = self.parse_input(move)
+                    if not move or not self.is_valid_move(self.current_game_state, move):
+                        print("Invalid move. Try again.")
+                        continue
+                else:  # AI moves as Black
+                    move = self.get_ai_move(self.current_game_state, depth)
+                    print(f"AI selected move: {self.convert_move_to_notation(move)}")
+            elif mode == "AI-H":  # AI started first, now human plays
+                if self.current_game_state["turn"] == "black":  # AI is White, human plays Black
+                    move = input("Enter your move (e.g., B2 B3): ")
+                    move = self.parse_input(move)
+                    if not move or not self.is_valid_move(self.current_game_state, move):
+                        print("Invalid move. Try again.")
+                        continue
+                else:  # AI moves as Black
+                    move = self.get_ai_move(self.current_game_state, depth)
+                    print(f"AI selected move: {self.convert_move_to_notation(move)}")
 
             self.make_move(self.current_game_state, move)
 
@@ -790,6 +801,13 @@ class MiniChess:
         else:
             self.no_capture_turns = 0  # Reset if a piece was captured
 
+      # Promote pawns to queens when they reach the opposite end of the board
+        if piece == 'wp' and end_row == 0:
+            game_state["board"][end_row][end_col] = 'wQ'
+            print("White pawn promoted to Queen!")
+        elif piece == 'bp' and end_row == 4:
+            game_state["board"][end_row][end_col] = 'bQ'
+            print("Black pawn promoted to Queen!")
         # Switch turns
         game_state["turn"] = "black" if game_state["turn"] == "white" else "white"
 
@@ -867,6 +885,7 @@ class MiniChess:
                     break
 
 
+
 if __name__ == "__main__":
     game = MiniChess()
     game.board_history = {}  
@@ -911,3 +930,4 @@ if __name__ == "__main__":
     else:
         print("Invalid selection. Defaulting to Human vs Human mode.")
         game.play(max_turns=max_turns)
+
