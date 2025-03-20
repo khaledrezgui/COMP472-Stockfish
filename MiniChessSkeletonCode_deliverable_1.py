@@ -119,36 +119,42 @@ class MiniChess:
         best_move = None
 
         if maximizing_player:  # White (Maximizing)
-            max_eval = -math.inf
+            value = -math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
-                eval, _ = self.minimax(new_state, depth - 1, alpha, beta, False)
-                if eval > max_eval:
-                    max_eval = eval
+                eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, False)
+                
+                value = max(value, eval_score)
+                if value > alpha:
+                    alpha = value
                     best_move = move
-                alpha = max(alpha, eval)
+                
+                # Debug before pruning
                 if beta <= alpha:  # Prune
-                    print('DEBUG: Maximizing Alpha-Beta Pruning at White.')
+                    print(f'DEBUG: Pruning at depth {depth} - Alpha-Beta Cutoff (β ≤ α) in Maximizing Player')
                     break
-            print('DEBUG: Maximizing Alpha-Beta Pruning at White.')
-            return max_eval, best_move
+            
+            return value, best_move
 
         else:  # Black (Minimizing)
-            min_eval = math.inf
+            value = math.inf
             for move in valid_moves:
                 new_state = copy.deepcopy(game_state)
                 self.make_move(new_state, move, simulated=True)
-                eval, _ = self.minimax(new_state, depth - 1, alpha, beta, True)
-                if eval < min_eval:
-                    min_eval = eval
+                eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, True)
+                
+                value = min(value, eval_score)
+                if value < beta:
+                    beta = value
                     best_move = move
-                beta = min(beta, eval)
+
+                # Debug before pruning
                 if beta <= alpha:  # Prune
-                    print('DEBUG: Minimizing Alpha-Beta Pruning at Black.')
+                    print(f'DEBUG: Pruning at depth {depth} - Alpha-Beta Cutoff (β ≤ α) in Minimizing Player')
                     break
-            print('DEBUG: Minimizing Alpha-Beta Pruning at Black.')
-            return min_eval, best_move
+
+            return value, best_move
 
     # Minimax without alpha-beta pruning
     def minimax_without_pruning(self, game_state, depth, maximizing_player):
