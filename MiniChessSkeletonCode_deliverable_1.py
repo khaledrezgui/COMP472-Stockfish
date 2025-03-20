@@ -603,39 +603,6 @@ class MiniChess:
 
         return best_move
 
-    '''
-    def play_ai_vs_human(self, depth=3):
-        """
-        Runs a game where a human plays against AI.
-        - Human is White, AI is Black.
-        - AI uses minimax or alpha-beta pruning to make decisions.
-        """
-        print("Starting Human vs AI match...")
-
-        while True:
-            self.display_board(self.current_game_state)
-
-            if self.current_game_state["turn"] == "white":
-                # Human move input
-                move = input("Enter your move (e.g., B2 B3): ")
-                move = self.parse_input(move)
-                if not move or not self.is_valid_move(self.current_game_state, move):
-                    print("Invalid move. Try again.")
-                    continue
-            else:
-                # AI move
-                print("AI is making a move...")
-                move = self.get_ai_move(self.current_game_state, depth)
-                print(f"AI selected move: {self.convert_move_to_notation(move)}")
-
-            # Make the move
-            self.make_move(self.current_game_state, move)
-
-            # Check if the game ended
-            if "winner" in self.current_game_state:
-                print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
-                break
-            '''
     def is_valid_king(self, start, end):
         """
         King moves 1 square in any direction (horizontal, vertical, diagonal).
