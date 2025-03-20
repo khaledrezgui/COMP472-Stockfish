@@ -423,10 +423,10 @@ class MiniChess:
             if self.board_history.get(board_hash, 0) >= 2:
                 print("AI avoiding repetition, selecting alternative move...")
                 for move in valid_moves:
-                     if move != best_move:  # Pick another valid move
+                     if move != best_move:  
                         return move
 
-        return best_move if best_move else valid_moves[0]  # Return the best move or a random move
+        return best_move if best_move else valid_moves[0]  
     
     def convert_move_to_notation(self, move):
         """
@@ -491,7 +491,7 @@ class MiniChess:
                 print("The game has ended in a draw!")
 
 
-    def play_ai_game(self, mode, depth, max_time, max_turns, use_alpha_beta):
+    def play_ai_game(self, mode, depth, max_time=5, max_turns=10, use_alpha_beta=True):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
         Uses heuristic e0 by default. 
@@ -513,7 +513,7 @@ class MiniChess:
             # If AI-H mode, AI plays first
         if mode == "AI-H":
             self.display_board(self.current_game_state)
-            move = self.get_ai_move(self.current_game_state, depth)
+            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
             print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
             self.make_move(self.current_game_state, move)
 
@@ -547,18 +547,20 @@ class MiniChess:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
 
-    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5):
+    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
         """
         AI selects the best move within a given time limit.
-        - Uses minimax or alpha-beta pruning.
+        - Uses minimax or alpha-beta pruning based on use_alpha_beta parameter.
         - Stops searching if max_time is reached.
         """
         start_time = time.time()
 
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
-        else:
+        elif heuristic == "e2":
             self.evaluate_board = self.evaluate_board_e2
+        else:
+            self.evaluate_board = self.evaluate_board  # Default e0
 
         valid_moves = self.valid_moves(game_state)
         if not valid_moves:
@@ -566,7 +568,7 @@ class MiniChess:
             return "GAME_OVER"
 
         best_move = valid_moves[0]
-        best_value = float('-inf')
+        best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
 
         for move in valid_moves:
             if time.time() - start_time > max_time:
@@ -575,9 +577,16 @@ class MiniChess:
 
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
-            eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+            
+            # Choose between minimax algorithms based on use_alpha_beta parameter
+            if use_alpha_beta:
+                eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
+            else:
+                eval_score, _ = self.minimax_without_pruning(new_state, depth, game_state["turn"] == "white")
 
-            if eval_score > best_value:
+            # Update best move based on the evaluation score
+            if (game_state["turn"] == "white" and eval_score > best_value) or \
+            (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
 
