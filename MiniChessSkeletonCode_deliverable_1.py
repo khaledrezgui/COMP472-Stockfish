@@ -426,6 +426,7 @@ class MiniChess:
         Alternates turns between White and Black.
         Displays board state only after AI makes a move (not during Minimax search).
         """
+        self.max_turns = max_turns
         print("Starting AI vs AI Game...")
         filename = f"gameTrace-{use_alpha_beta}-{max_time}-{max_turns}.txt"
         with open(filename, "w") as file:
@@ -474,7 +475,7 @@ class MiniChess:
                     # Start measuring AI move time
                     start_time = time.time()
                     # AI chooses best move using Minimax
-                    move = self.get_ai_move(self.current_game_state, depth)
+                    move, best_search_score = self.get_ai_move(self.current_game_state, depth)
                     end_time = time.time()
                     move_time = round(end_time - start_time, 4)
 
@@ -485,6 +486,7 @@ class MiniChess:
                     
                     move_notation = self.convert_move_to_notation(move)
                     file.write(f"AI ({self.current_game_state['turn']}) nodes:{move} Board Move: {move_notation}\n")
+                    file.write(f"Alpha-Beta search score: {best_search_score}\n")
                     file.write(f"Time for this action: {move_time} sec\n")
                     # Print the AI's chosen move
                     print(f"AI ({self.current_game_state['turn']}) chose: {self.convert_move_to_notation(move)}")
@@ -613,6 +615,7 @@ class MiniChess:
 
         best_move = valid_moves[0]
         best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
+        best_search_score = None
 
         for move in valid_moves:
             if time.time() - start_time > max_time:
@@ -633,12 +636,17 @@ class MiniChess:
             (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
-        
+                best_search_score = eval_score 
+
+        filename = f"gameTrace-{use_alpha_beta}-{max_time}-{self.max_turns}.txt"
+        with open(filename, "a") as file:
+             file.write(f"Alpha-Beta search score: {best_search_score}\n")     
+      
         end_time = time.time()  
         elapsed_time = end_time - start_time
         print(f"AI ({game_state['turn']}) took {elapsed_time:.3f} seconds to select a move.")
 
-        return best_move
+        return best_move, best_search_score
 
     def is_valid_king(self, start, end):
         """
