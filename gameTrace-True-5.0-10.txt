@@ -1,0 +1,81 @@
+Mini Chess AI vs AI Game Trace
+Alpha-Beta: True
+Timeout: 5.0 sec
+Max Turns: 10
+
+
+TURN 1 (White to move)
+AI (white) nodes:((4, 3), (1, 3)) Board Move: D1 D4
+Time for this action: 0.001 sec
+bK bQ bB bN .
+. . bp wQ .
+. . . . .
+. wp wp . .
+. wN wB . wK
+
+TURN 1 (Black to move)
+AI (black) nodes:((0, 2), (1, 3)) Board Move: C5 D4
+Time for this action: 0.0 sec
+bK bQ . bN .
+. . bp bB .
+. . . . .
+. wp wp . .
+. wN wB . wK
+
+TURN 2 (White to move)
+AI (white) nodes:((4, 1), (2, 2)) Board Move: B1 C3
+Time for this action: 0.0 sec
+bK bQ . bN .
+. . bp bB .
+. . wN . .
+. wp wp . .
+. . wB . wK
+
+TURN 2 (Black to move)
+AI (black) nodes:((0, 3), (2, 2)) Board Move: D5 C3
+Time for this action: 0.0 sec
+bK bQ . . .
+. . bp bB .
+. . bN . .
+. wp wp . .
+. . wB . wK
+
+TURN 3 (White to move)
+AI (white) nodes:((3, 1), (2, 2)) Board Move: B2 C3
+Time for this action: 0.0 sec
+bK bQ . . .
+. . bp bB .
+. . wp . .
+. . wp . .
+. . wB . wK
+
+TURN 3 (Black to move)
+AI (black) nodes:((1, 3), (2, 2)) Board Move: D4 C3
+Time for this action: 0.0 sec
+bK bQ . . .
+. . bp . .
+. . bB . .
+. . wp . .
+. . wB . wK
+
+TURN 4 (White to move)
+AI (white) nodes:((4, 4), (3, 3)) Board Move: E1 D2
+Time for this action: 0.0 sec
+bK bQ . . .
+. . bp . .
+. . bB . .
+. . wp wK .
+. . wB . .
+
+TURN 4 (Black to move)
+AI (black) nodes:((0, 0), (1, 1)) Board Move: A5 B4
+Time for this action: 0.0 sec
+. bQ . . .
+. bK bp . .
+. . bB . .
+. . wp wK .
+. . wB . .
+
+TURN 5 (White to move)
+
+Game ended in a draw.

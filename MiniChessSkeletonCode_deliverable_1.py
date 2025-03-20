@@ -427,42 +427,79 @@ class MiniChess:
         Displays board state only after AI makes a move (not during Minimax search).
         """
         print("Starting AI vs AI Game...")
-        
-        # Set heuristic function
-        if heuristic == "e1":
-            self.evaluate_board = self.evaluate_board_e1
-        elif heuristic == "e2":
-            self.evaluate_board = self.evaluate_board_e2
-        else:
-            self.evaluate_board = self.evaluate_board  # Default e0
-        
-        while True:
-            #self.display_board(self.current_game_state)  # Show board before AI move
-
-            # Check if the game has ended
-            game_over, winner = self.is_terminal(self.current_game_state)
-            if game_over:
-                break
-
-            # **Check if max_turns has been reached**
-            if self.total_half_turns >= max_turns * 2:
-                print(f"Game ended in a draw due to reaching {max_turns} turns.")
-                self.current_game_state["winner"] = "draw"
-                break
-
-            # AI chooses best move using Minimax
-            move = self.get_ai_move(self.current_game_state, depth)
-
-            if move == "GAME_OVER":
-                break  # No valid moves available
+        filename = f"gameTrace-{use_alpha_beta}-{max_time}-{max_turns}.txt"
+        with open(filename, "w") as file:
+            try:
             
-            # Print the AI's chosen move
-            print(f"AI ({self.current_game_state['turn']}) chose: {self.convert_move_to_notation(move)}")
+                file.write(f"Mini Chess AI vs AI Game Trace\n")
+                file.write(f"Alpha-Beta: {use_alpha_beta}\nTimeout: {max_time} sec\nMax Turns: {max_turns}\n\n")
 
-            # Apply the move and display new board state
-            self.make_move(self.current_game_state, move)
-            self.display_board(self.current_game_state)  # Show board after move
-            time.sleep(1)  # Pause briefly for readability
+                turn_count = 0  # Track the number of full turns (White+Black = 1 turn)
+                # Set heuristic function
+                if heuristic == "e1":
+                    self.evaluate_board = self.evaluate_board_e1
+                elif heuristic == "e2":
+                    self.evaluate_board = self.evaluate_board_e2
+                else:
+                    self.evaluate_board = self.evaluate_board  # Default e0
+                
+                while True:
+                    #self.display_board(self.current_game_state)  # Show board before AI move
+                    if self.current_game_state["turn"] == "white":
+                        turn_count += 1
+                    file.write(f"\nTURN {turn_count} ({self.current_game_state['turn'].capitalize()} to move)\n")
+                    if turn_count > max_turns:
+                        file.write("\nGame ended in a DRAW (Max turns reached).\n")
+                        print("Game ended in a draw due to max turn limit.")
+                        break
+
+                    
+                    # Check if the game has ended
+                    game_over, winner = self.is_terminal(self.current_game_state)
+                    if game_over:
+                        if winner:
+                            file.write(f"\nWinner: {winner.capitalize()} wins the game!\n")
+                            print(f"AI playing as {winner} wins the game!")
+                        else:
+                            file.write("\nGame ended in a draw.\n")
+                            print("The game has ended in a draw!")
+                        break
+
+                    # **Check if max_turns has been reached**
+                    if self.total_half_turns >= max_turns * 2:
+                        print(f"Game ended in a draw due to reaching {max_turns} turns.")
+                        self.current_game_state["winner"] = "draw"
+                        break
+                
+                    # Start measuring AI move time
+                    start_time = time.time()
+                    # AI chooses best move using Minimax
+                    move = self.get_ai_move(self.current_game_state, depth)
+                    end_time = time.time()
+                    move_time = round(end_time - start_time, 4)
+
+                    if move == "GAME_OVER":
+                        file.write("\nNo valid moves left. Game over.\n")
+                        print("No valid moves left. Game over.")
+                        break  # No valid moves available
+                    
+                    move_notation = self.convert_move_to_notation(move)
+                    file.write(f"AI ({self.current_game_state['turn']}) nodes:{move} Board Move: {move_notation}\n")
+                    file.write(f"Time for this action: {move_time} sec\n")
+                    # Print the AI's chosen move
+                    print(f"AI ({self.current_game_state['turn']}) chose: {self.convert_move_to_notation(move)}")
+
+                    # Apply the move and display new board state
+                    self.make_move(self.current_game_state, move)
+                    self.display_board(self.current_game_state)  # Show board after move
+                    for row in self.current_game_state["board"]:
+                        file.write(' '.join(row) + '\n')
+            
+                    time.sleep(1)  # Pause briefly for readability
+            except Exception as e:
+                print(f"Error during game execution: {e}")
+
+        print(f"Game trace saved to: {filename}")        
 
         
 
