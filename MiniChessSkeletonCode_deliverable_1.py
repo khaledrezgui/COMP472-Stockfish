@@ -9,6 +9,7 @@ class MiniChess:
         self.no_capture_turns = 0  # Track turns without a capture
         self.total_half_turns = 0 
         self.nodes_explored = 0 # Track total nodes explored in Minimax
+        self.board_history = {}
     """
     Initialize the board
 
@@ -69,28 +70,32 @@ class MiniChess:
     def is_terminal(self, game_state):
         """
         Checks if the game is in a terminal state.
-        Fix: Ensures the game ends only when a valid win/draw condition occurs.
+        Returns a tuple (True/False, winner or None)
         """
         # Check if any King is missing
         kings = {piece for row in game_state["board"] for piece in row if piece in ("wK", "bK")}
         if "wK" not in kings:
             game_state["winner"] = "black"
-            return True  # Black wins
+            return True, "black"
         if "bK" not in kings:
             game_state["winner"] = "white"
-            return True  # White wins
-        
-        # Check for no valid moves (stalemate/loss condition)
-        if not self.valid_moves(game_state):        
-            return True, None  # No valid moves means the game is over
-        
-        # Check draw condition
-        if (self.no_capture_turns // 2) >= 10: #10 full turns
-            return True, None # Draw
-        
+            return True, "white"
+
+        # Check for no valid moves (stalemate or loss)
+        if not self.valid_moves(game_state):
+            game_state["winner"] = "draw"  # Treat as draw for now (you can customize this logic)
+            return True, "draw"
+
+        # Check draw by inactivity (no captures in 10 full turns)
+        if (self.no_capture_turns // 2) >= 10:
+            game_state["winner"] = "draw"
+            return True, "draw"
+
+        # Check repetition
         if self.is_repetition():
-            return True, None
-        
+            game_state["winner"] = "draw"
+            return True, "draw"
+
         return False, None
 
     def evaluate_board(self, game_state):
@@ -98,7 +103,6 @@ class MiniChess:
         Evaluates the board using heuristic e0.
         A positive value favors white, a negative value favors black.
         """
-        print("e0")
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
 
@@ -187,10 +191,10 @@ class MiniChess:
                 self.make_move(new_state, move, simulated=True)
                 eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, False)
 
-                value = max(value, eval_score)
-                if value > value:
+                if eval_score > value:
+                    value = eval_score
                     best_move = move
-            
+
             return value, best_move
 
         else:  # Black (Minimizing)
@@ -200,12 +204,11 @@ class MiniChess:
                 self.make_move(new_state, move, simulated=True)
                 eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, True)
 
-                value = min(value, eval_score)
-                if value < value:
+                if eval_score < value:
+                    value = eval_score
                     best_move = move
-            
-            return value, best_move
 
+            return value, best_move
     
     """
     Check if the move is valid    
@@ -526,10 +529,10 @@ class MiniChess:
         # Game over message
         game_over, winner = self.is_terminal(self.current_game_state)
         if game_over:
-            if winner:
-                print(f"AI playing as {winner} wins the game!")
-            else:
+            if winner == "draw":
                 print("The game has ended in a draw!")
+            else:
+                print(f"AI playing as {winner} wins the game!")
 
 
     def play_ai_game(self, mode, depth, max_time=5, max_turns=10, use_alpha_beta=True):
@@ -917,7 +920,7 @@ class MiniChess:
                 file.write("\n")
 
                 # Check if a player has won the game by capturing opponent king
-                if 'wins' in self.current_game_state:
+                if "winner" in self.current_game_state:
                     # If there a win is detected, logs the result in the game trace file
                     file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
