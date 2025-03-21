@@ -26,13 +26,13 @@ To Play: (H-H MODE)
 - To win: Capture your opponent's king!
 - A draw is called if more than 10 turns were made and no pieces were captured.
 
-To Play :( AI-AI, AI-H, H-AI)
+To play: (AI vs AI, AI vs Human, Human vs AI)
 - Run the game
-- Follow the menu instructions to switch between modes and heuristics
-- Choose your depth, time limit, and turn count
+- Follow the menu instructions to switch between modes and heuristics(`e0`, `e1`, or `e2`)  
+- Choose your depth, time limit, and maximum turn count
 - To win: Capture AI's king
 - If more than your selected turns were made and no pieces were captured, a draw is called 
-  
+
   ### Installation
   To run this project, you need to install Python on your system.
   ``` python MiniChessSkeletonCode_deliverable_1.py ```
