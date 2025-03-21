@@ -66,7 +66,6 @@ class MiniChess:
         self.board_history[board_hash] = self.board_history.get(board_hash, 0) + 1
 
         if self.board_history[board_hash] >= 3:
-            print("Repetition detected! Penalizing AI and forcing different moves.")
             return True
 
         return False
@@ -306,7 +305,6 @@ class MiniChess:
         - Penalizes repeating positions.
         - Encourages piece mobility.
         """
-        print("e1")
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         center_bonus = [[0, 1, 3, 1, 0],
                         [1, 2, 4, 2, 1],
@@ -343,7 +341,6 @@ class MiniChess:
         - Penalizes passive moves (staying in the same place).
         """
 
-        print("e2")
 
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
