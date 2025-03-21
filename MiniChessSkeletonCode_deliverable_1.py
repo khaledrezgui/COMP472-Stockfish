@@ -9,7 +9,11 @@ class MiniChess:
         self.no_capture_turns = 0  # Track turns without a capture
         self.total_half_turns = 0 
         self.nodes_explored = 0 # Track total nodes explored in Minimax
+
         self.board_history = {}
+        self.depth_stats = {}  # Track number of states explored per depth
+        self.total_branching = 0  # Total number of branches explored (for avg branching factor)
+        self.total_nodes = 0  # Total number of nodes (excluding root)
     """
     Initialize the board
 
@@ -115,94 +119,80 @@ class MiniChess:
         return score
 
     # Minimax Algorithm with Alpha-Beta Pruning
-    def minimax(self, game_state, depth, alpha, beta, maximizing_player):
-        """
-        Minimax algorithm with Alpha-Beta pruning.
-        Tracks the number of nodes explored.
-        """
-        self.nodes_explored += 1  # Count this node
+    def minimax(self, game_state, depth, alpha, beta, maximizing_player, current_depth=0):
+        self.nodes_explored += 1
+        self.depth_stats[current_depth] = self.depth_stats.get(current_depth, 0) + 1
 
         if depth == 0 or self.is_terminal(game_state):
             return self.evaluate_board(game_state), None
 
         valid_moves = self.valid_moves(game_state)
-        if not valid_moves:  # If no valid moves exist, return game over
-            return float('-inf') if maximizing_player else float('inf'), None
+        self.total_branching += len(valid_moves)
+        self.total_nodes += 1
 
         best_move = None
 
-        if maximizing_player:  # White (Maximizing)
+        if maximizing_player:
             value = -math.inf
             for move in valid_moves:
-                new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move, simulated=True)
-                eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, False)
+                simulated_state = copy.deepcopy(game_state)
+                self.make_move(simulated_state, move, simulated=True)
+                eval_score, _ = self.minimax(simulated_state, depth - 1, alpha, beta, False, current_depth + 1)
 
-                value = max(value, eval_score)
-                if value > alpha:
-                    alpha = value
+                if eval_score > value:
+                    value = eval_score
                     best_move = move
-
-                # Pruning
+                alpha = max(alpha, value)
                 if beta <= alpha:
-                    break  # Alpha-Beta cutoff
-            
+                    break
             return value, best_move
-
-        else:  # Black (Minimizing)
+        else:
             value = math.inf
             for move in valid_moves:
-                new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move, simulated=True)
-                eval_score, _ = self.minimax(new_state, depth - 1, alpha, beta, True)
+                simulated_state = copy.deepcopy(game_state)
+                self.make_move(simulated_state, move, simulated=True)
+                eval_score, _ = self.minimax(simulated_state, depth - 1, alpha, beta, True, current_depth + 1)
 
-                value = min(value, eval_score)
-                if value < beta:
-                    beta = value
+                if eval_score < value:
+                    value = eval_score
                     best_move = move
-
-                # Pruning
+                beta = min(beta, value)
                 if beta <= alpha:
-                    break  # Alpha-Beta cutoff
-            
+                    break
             return value, best_move
 
     # Minimax without alpha-beta pruning
-    def minimax_without_pruning(self, game_state, depth, maximizing_player):
-        """
-        Standard minimax algorithm without Alpha-Beta pruning.
-        Tracks the number of nodes explored.
-        """
-        self.nodes_explored += 1  # Count this node
+    def minimax_without_pruning(self, game_state, depth, maximizing_player, current_depth=0):
+        self.nodes_explored += 1
+        self.depth_stats[current_depth] = self.depth_stats.get(current_depth, 0) + 1
 
         if depth == 0 or self.is_terminal(game_state):
             return self.evaluate_board(game_state), None
 
         valid_moves = self.valid_moves(game_state)
-        if not valid_moves:  # If no valid moves exist, return game over
-            return float('-inf') if maximizing_player else float('inf'), None
+        self.total_branching += len(valid_moves)
+        self.total_nodes += 1
 
         best_move = None
 
-        if maximizing_player:  # White (Maximizing)
+        if maximizing_player:
             value = -math.inf
             for move in valid_moves:
-                new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move, simulated=True)
-                eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, False)
+                simulated_state = copy.deepcopy(game_state)
+                self.make_move(simulated_state, move, simulated=True)
+                eval_score, _ = self.minimax_without_pruning(simulated_state, depth - 1, False, current_depth + 1)
 
                 if eval_score > value:
                     value = eval_score
                     best_move = move
 
             return value, best_move
-
-        else:  # Black (Minimizing)
+        else:
             value = math.inf
             for move in valid_moves:
-                new_state = copy.deepcopy(game_state)
-                self.make_move(new_state, move, simulated=True)
-                eval_score, _ = self.minimax_without_pruning(new_state, depth - 1, True)
+                simulated_state = copy.deepcopy(game_state)
+                self.make_move(simulated_state, move, simulated=True)
+                eval_score, _ = self.minimax_without_pruning(simulated_state, depth - 1, True, current_depth + 1)
 
                 if eval_score < value:
                     value = eval_score
@@ -210,6 +200,7 @@ class MiniChess:
 
             return value, best_move
     
+            return value, best_move
     """
     Check if the move is valid    
     
@@ -368,7 +359,7 @@ class MiniChess:
                     if piece[1] == 'K':
                         king_positions[piece[0]] = (r, c)
 
-        # Increase **weight for capturing opponent’s high-value pieces**
+        # Increase the weight for capturing opponent’s high-value pieces
         for move in self.valid_moves(game_state):
             _, (end_r, end_c) = move
             target_piece = game_state["board"][end_r][end_c]
@@ -376,7 +367,7 @@ class MiniChess:
                 capture_value = piece_values.get(target_piece[1], 0)
                 score += (capture_value * 4) if game_state["turn"] == 'white' else (-capture_value * 4)
 
-        # **King Safety: Penalize exposed kings**
+        # King Safety: Penalize exposed kings
         for color, (kr, kc) in king_positions.items():
             if kr is None:
                 continue  # King is already captured
@@ -388,10 +379,10 @@ class MiniChess:
             )
             score += attack_bonus if color == 'b' else -attack_bonus
 
-        # **Encourage piece mobility**
+        # Encourage piece mobility
         score += len(self.valid_moves(game_state)) * (1.2 if game_state["turn"] == 'white' else -1.2)
 
-        # **Penalize passive moves (repetitive board states)**
+        # Penalize passive moves (repetitive board states)
         board_hash = self.hash_board(game_state)
         repetition_penalty = self.board_history.get(board_hash, 0) * 15
         score -= repetition_penalty if game_state["turn"] == 'white' else -repetition_penalty
@@ -512,7 +503,7 @@ class MiniChess:
             move = self.get_ai_move(
                 self.current_game_state,
                 depth=depth,
-                heuristic=heuristic,  # ✅ Pass heuristic explicitly
+                heuristic=heuristic,  # Pass heuristic explicitly
                 max_time=max_time,
                 use_alpha_beta=use_alpha_beta
             )
@@ -550,7 +541,7 @@ class MiniChess:
                 print("Invalid choice! Defaulting to e0.")
                 heuristic_choice = "e0"
 
-        # ✅ Ensure correct heuristic is set
+        # Ensure correct heuristic is set
         if heuristic_choice == "e1":
             self.evaluate_board = self.evaluate_board_e1
         elif heuristic_choice == "e2":
@@ -570,7 +561,7 @@ class MiniChess:
         while True:
             self.display_board(self.current_game_state)
 
-            # **Check if max_turns has been reached**
+            # Check if max_turns has been reached
             if self.total_half_turns >= max_turns * 2:
                 print(f"Game ended in a draw due to reaching {max_turns} turns.")
                 self.current_game_state["winner"] = "draw"
@@ -623,7 +614,7 @@ class MiniChess:
         """
         self.nodes_explored = 0  # Reset node counter
 
-        # Fix: Ensure correct heuristic is assigned
+        # Ensure correct heuristic is assigned
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
         elif heuristic == "e2":
@@ -649,7 +640,7 @@ class MiniChess:
             new_state = copy.deepcopy(game_state)
             self.make_move(new_state, move, simulated=True)
 
-            # ✅ Fix: Ensure the correct heuristic is used in evaluation
+            # Ensure the correct heuristic is used in evaluation
             if use_alpha_beta:
                 eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
             else:
@@ -664,7 +655,8 @@ class MiniChess:
 
         print(f"AI ({game_state['turn']}) took {elapsed_time:.4f} seconds to select a move.")
         print(f"AI explored {self.nodes_explored} nodes using {'Alpha-Beta Pruning' if use_alpha_beta else 'Standard Minimax'}.")
-        print(f"Using heuristic: {heuristic}")  # ✅ Debugging line to verify heuristic selection
+        print(f"Using heuristic: {heuristic}")  # Debugging line to verify heuristic selection
+        self.print_cumulative_stats()
 
         return best_move
 
@@ -759,11 +751,11 @@ class MiniChess:
         start_row, start_col = start
         end_row, end_col = end
 
-        # 🔹 Queen moves like a Bishop
+        # Queen moves like a Bishop
         if abs(start_row - end_row) == abs(start_col - end_col):
             return self.is_valid_bishop(start, end, game_state)
 
-        # 🔹 Queen moves straight like a Rook (Horizontally or Vertically)
+        # Queen moves straight like a Rook (Horizontally or Vertically)
         if start_row == end_row or start_col == end_col:
             return self.is_valid_straight_line(start, end, game_state)
 
@@ -827,18 +819,18 @@ class MiniChess:
                 print(f"Game Over! {game_state['winner'].capitalize()} wins by capturing the King.")
             return game_state
         
-        # **Check if a piece was captured**
+        # Check if a piece was captured
         new_piece_count = self.count_pieces(game_state)
         if new_piece_count < previous_piece_count:  # If a piece was removed
             self.total_half_turns = 0  # Reset turn counter
 
-        # **Fix No-Capture Turn Tracking**
+        # No-Capture Turn Tracking
         if target_piece == '.':
             self.no_capture_turns += 1  # Increment no-capture half-turns
         else:
             self.no_capture_turns = 0  # Reset if a piece was captured
 
-      # Promote pawns to queens when they reach the opposite end of the board
+      # Promote pawns to Queens when they reach the opposite end of the board
         if piece == 'wp' and end_row == 0:
             game_state["board"][end_row][end_col] = 'wQ'
             print("White pawn promoted to Queen!")
@@ -846,7 +838,7 @@ class MiniChess:
             game_state["board"][end_row][end_col] = 'bQ'
             print("Black pawn promoted to Queen!")
         # Switch turns
-            # **Increase total turn count**
+            # Increase total turn count
         if not simulated:
             self.total_half_turns += 1
 
@@ -925,6 +917,27 @@ class MiniChess:
                     file.write(f"{self.current_game_state['turn'].capitalize()} wins the game!\n")
                     break
 
+    def print_cumulative_stats(self):
+        print("\n AI Cumulative Statistics:")
+
+        # a) Total states
+        print(f"a) Cumulative states explored: {self.nodes_explored:,}")
+
+        # b) States per depth
+        print("b) Cumulative states explored by depth:")
+        for d in sorted(self.depth_stats):
+            count = self.depth_stats[d]
+            print(f"   Depth {d}: {count:,}")
+
+        # c) Percentages per depth
+        print("c) Cumulative % states explored by depth:")
+        for d in sorted(self.depth_stats):
+            percent = (self.depth_stats[d] / self.nodes_explored) * 100
+            print(f"   Depth {d}: {percent:.1f}%")
+
+        # d) Average branching factor
+        avg_branching = self.total_branching / self.total_nodes if self.total_nodes > 0 else 0
+        print(f"d) Average branching factor: {avg_branching:.2f}")
 
 
 if __name__ == "__main__":
