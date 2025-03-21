@@ -558,8 +558,7 @@ class MiniChess:
                     file.write(f"\nTURN {turn_count + 1} (White to move - AI)\n")
                     file.write(f"AI (White) chose: {move_notation}\n")
                     file.write(f"Search Score: {best_search_score}\n")
-                    heuristic_score = self.evaluate_board(self.current_game_state)
-                    file.write(f"Heuristic score: {heuristic_score}\n")
+     
 
                     self.make_move(self.current_game_state, move)
                     
@@ -638,7 +637,7 @@ class MiniChess:
                     # Log board state after move
                     for row in self.current_game_state["board"]:
                         file.write(' '.join(row) + '\n')
-                        
+
                     heuristic_score = self.evaluate_board(self.current_game_state)
                     file.write(f"Heuristic score: {heuristic_score}\n")
 
