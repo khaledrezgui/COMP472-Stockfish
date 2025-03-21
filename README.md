@@ -24,7 +24,14 @@ To Play: (H-H MODE)
     ( B1 B2 ) where B1 represents the piece you wish to move and B2 represents the
      square you wish to land on.
 - To win: Capture your opponents king !
-- If more than 10 turns were made and no pieces were captured, a draw is called. 
+- If more than 10 turns were made and no pieces were captured, a draw is called.
+
+To Play :( AI-AI, AI-H, H-AI)
+- Run the game
+- Follow the menu instructions to switch between modes and heuristics
+- Choose your depth, time limit , and turn count
+- To win: Capture AI's king
+- If more than your selected turns were made and no pieces were captured, a draw is called 
   
   ### Installation
   To run this project, you need Python installed on your system.
