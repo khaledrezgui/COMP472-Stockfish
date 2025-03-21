@@ -524,73 +524,135 @@ class MiniChess:
         Uses heuristic e0 by default. 
         """
         print("Starting Game...")
+        filename = f"gameTrace-{use_alpha_beta}-{max_time}-{max_turns}.txt"
 
         # Default heuristic: e0
         self.evaluate_board = self.evaluate_board  # Keep e0 as default
 
-        # Ask for heuristics only if AI is involved
-        if mode in ["H-AI", "AI-H"]:
-            heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
-            if heuristic_choice == "e1":
-                self.evaluate_board = self.evaluate_board_e1
-            elif heuristic_choice == "e2":
-                self.evaluate_board = self.evaluate_board_e2
-            elif heuristic_choice != "e0":
-                print("Invalid choice! Defaulting to e0.")
+        with open(filename, "w") as file:
+            file.write(f"Mini Chess {mode} Game Trace\n")
+            file.write(f"Alpha-Beta: {use_alpha_beta}\nTimeout: {max_time} sec\nMax Turns: {max_turns}\n\n")
 
-        # AI moves first if AI-H mode
-        if mode == "AI-H":
-            self.display_board(self.current_game_state)
-            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
-            print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
-            self.make_move(self.current_game_state, move)
+            turn_count = 0  # Track the number of full turns (White+Black = 1 turn)
+            self.total_half_turns = 0  # Reset half turns counter
 
-        while True:
-            self.display_board(self.current_game_state)
+                    # Default heuristic: e0
+            self.evaluate_board = self.evaluate_board
+                    # Ask for heuristics only if AI is involved
+            if mode in ["H-AI", "AI-H"]:
+                heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
+                if heuristic_choice == "e1":
+                    self.evaluate_board = self.evaluate_board_e1
+                elif heuristic_choice == "e2":
+                    self.evaluate_board = self.evaluate_board_e2
+                elif heuristic_choice != "e0":
+                    print("Invalid choice! Defaulting to e0.")
+                    filename = f"gameTrace-{use_alpha_beta}-{max_time}-{max_turns}.txt"
+        
 
-            # **Check if max_turns has been reached**
-            if self.total_half_turns >= max_turns * 2:
-                print(f"Game ended in a draw due to reaching {max_turns} turns.")
-                self.current_game_state["winner"] = "draw"
-                break
+            if mode == "AI-H":
+                    self.display_board(self.current_game_state)
+                    move, best_search_score  = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+                    move_notation = self.convert_move_to_notation(move)
+                    print(f"AI (White) chose: {move_notation}")
+                    file.write(f"\nTURN {turn_count + 1} (White to move - AI)\n")
+                    file.write(f"AI (White) chose: {move_notation}\n")
+                    file.write(f"Search Score: {best_search_score}\n")
+                    heuristic_score = self.evaluate_board(self.current_game_state)
+                    file.write(f"Heuristic score: {heuristic_score}\n")
 
-            if mode == "H-H":  # Human vs Human (No AI, No Heuristics)
-                move = input(f"{self.current_game_state['turn'].capitalize()} to move (e.g., B2 B3): ")
-                move = self.parse_input(move)
-                if not move or not self.is_valid_move(self.current_game_state, move):
-                    print("Invalid move. Try again.")
-                    continue
+                    self.make_move(self.current_game_state, move)
+                    
 
-            if mode == "H-AI":
-                if self.current_game_state["turn"] == "white":  # Human starts in H-AI
-                    move = input("Enter your move (e.g., B2 B3): ")
-                    move = self.parse_input(move)
-                    if not move or not self.is_valid_move(self.current_game_state, move):
-                        print("Invalid move. Try again.")
-                        continue
-                else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
-                    print(f"AI selected move: {self.convert_move_to_notation(move)}")
+            while True:
+                    self.display_board(self.current_game_state)
 
-            elif mode == "AI-H":  # AI started first, now human plays
-                if self.current_game_state["turn"] == "black":  # AI is White, human plays Black
-                    move = input("Enter your move (e.g., B2 B3): ")
-                    move = self.parse_input(move)
-                    if not move or not self.is_valid_move(self.current_game_state, move):
-                        print("Invalid move. Try again.")
-                        continue
-                else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
-                    print(f"AI selected move: {self.convert_move_to_notation(move)}")
+                    # **Check if max_turns has been reached**
+                    if self.total_half_turns >= max_turns * 2:
+                        print(f"Game ended in a draw due to reaching {max_turns} turns.")
+                        file.write("Game ended in a draw due to max turn limit.\n")
+                        self.current_game_state["winner"] = "draw"
+                        break
+                    move = None
+                    turn_count += 1
+                    file.write(f"\nTURN {turn_count} ({self.current_game_state['turn'].capitalize()} to move)\n")
+                    if self.current_game_state["turn"] == "white":
+                        file.write("White to move\n")
+                    else:
+                        file.write("Black to move\n")
 
-            self.make_move(self.current_game_state, move)
+                    if mode == "H-H":  # Human vs Human (No AI, No Heuristics)
+                        move = input(f"{self.current_game_state['turn'].capitalize()} to move (e.g., B2 B3): ")
+                        move = self.parse_input(move)
+                        if not move or not self.is_valid_move(self.current_game_state, move):
+                            print("Invalid move. Try again.")
+                            continue
+                        move_notation = self.convert_move_to_notation(move)
+                        file.write(f"Player ({self.current_game_state['turn']}) chose: {move_notation}\n")
 
-            if "winner" in self.current_game_state:
-                if self.current_game_state["winner"] == "draw":
-                    print("The game has reached a draw. Game over.")
-                else:
-                    print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
-                break
+                    if mode == "H-AI":
+                        if self.current_game_state["turn"] == "white":  # Human starts in H-AI
+                            move = input("Enter your move (e.g., B2 B3): ")
+                            move = self.parse_input(move)
+                            if not move or not self.is_valid_move(self.current_game_state, move):
+                                print("Invalid move. Try again.")
+                                continue
+                            move_notation = self.convert_move_to_notation(move)
+                            file.write(f"Player White (H) chose: {move_notation}\n")
+                        else:  # AI moves as Black
+                            start_time = time.time()
+                            move, best_search_score= self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+                            end_time = time.time()
+                            move_time = round(end_time - start_time, 4)
+
+                            move_notation = self.convert_move_to_notation(move)
+                            file.write(f"AI (Black) chose: {move_notation}\n")
+                            file.write(f"Search Score: {best_search_score}\n")
+                            file.write(f"Time for this action: {move_time} sec\n")
+
+                            print(f"AI selected move: {move_notation}")
+
+                    elif mode == "AI-H":  # AI started first, now human plays
+                        if self.current_game_state["turn"] == "black":  # AI is White, human plays Black
+                            move = input("Enter your move (e.g., B2 B3): ")
+                            move = self.parse_input(move)
+                            if not move or not self.is_valid_move(self.current_game_state, move):
+                                print("Invalid move. Try again.")
+                                continue
+                            move_notation = self.convert_move_to_notation(move)
+                            file.write(f"Human (black) chose: {move_notation}\n")
+                        else:  # AI moves as Black
+                            start_time = time.time()
+                            move, best_search_score = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+                            end_time = time.time()
+                            move_time = round(end_time - start_time, 4)
+
+                            move_notation = self.convert_move_to_notation(move)
+                            file.write(f"AI (White) chose: {move_notation}\n")
+                            file.write(f"Search Score: {best_search_score}\n")
+                            file.write(f"Time for this action: {move_time} sec\n")
+                            print(f"AI selected move: {move_notation}")
+
+                    self.make_move(self.current_game_state, move)
+
+                    # Log board state after move
+                    for row in self.current_game_state["board"]:
+                        file.write(' '.join(row) + '\n')
+                        
+                    heuristic_score = self.evaluate_board(self.current_game_state)
+                    file.write(f"Heuristic score: {heuristic_score}\n")
+
+                    game_over, winner = self.is_terminal(self.current_game_state)
+                    if game_over:
+                        if winner:
+                            print(f"{winner.capitalize()} wins the game!")
+                            file.write(f"\nWinner: {winner.capitalize()} wins the game!\n")
+                        else:
+                            print("The game has ended in a draw!")
+                            file.write("\nGame ended in a DRAW.\n")
+                        break
+
+            print(f"Game trace saved to: {filename}")
 
 
     def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
@@ -638,7 +700,7 @@ class MiniChess:
                 best_move = move
                 best_search_score = eval_score 
 
-        filename = f"gameTrace-{use_alpha_beta}-{max_time}-{self.max_turns}.txt"
+        filename = f"gameTrace-{use_alpha_beta}-{max_time}-{max_turns}.txt"
         with open(filename, "a") as file:
              file.write(f"Alpha-Beta search score: {best_search_score}\n")     
       
