@@ -98,7 +98,7 @@ class MiniChess:
         Evaluates the board using heuristic e0.
         A positive value favors white, a negative value favors black.
         """
-        
+        print("e0")
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
 
@@ -312,7 +312,7 @@ class MiniChess:
         - Penalizes repeating positions.
         - Encourages piece mobility.
         """
-
+        print("e1")
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         center_bonus = [[0, 1, 3, 1, 0],
                         [1, 2, 4, 2, 1],
@@ -348,6 +348,8 @@ class MiniChess:
         - Encourages open, aggressive play and piece activity.
         - Penalizes passive moves (staying in the same place).
         """
+
+        print("e2")
 
         piece_values = {'p': 1, 'B': 3, 'N': 3, 'Q': 9, 'K': 999}
         score = 0
@@ -479,46 +481,49 @@ class MiniChess:
         Displays board state only after AI makes a move (not during Minimax search).
         """
         print("Starting AI vs AI Game...")
-        
-        # Set heuristic function
+        print(f"→ Heuristic: {heuristic}")
+        print(f"→ Alpha-Beta Pruning: {'Enabled' if use_alpha_beta else 'Disabled'}")
+        print(f"→ Depth: {depth}, Max Time per Move: {max_time} seconds, Max Turns: {max_turns}\n")
+
+        # Set the heuristic evaluation function
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
         elif heuristic == "e2":
             self.evaluate_board = self.evaluate_board_e2
         else:
             self.evaluate_board = self.evaluate_board  # Default e0
-        
-        while True:
-            #self.display_board(self.current_game_state)  # Show board before AI move
 
+        while True:
             # Check if the game has ended
             game_over, winner = self.is_terminal(self.current_game_state)
             if game_over:
                 break
 
-            # **Check if max_turns has been reached**
+            # Check if max_turns has been reached
             if self.total_half_turns >= max_turns * 2:
                 print(f"Game ended in a draw due to reaching {max_turns} turns.")
                 self.current_game_state["winner"] = "draw"
                 break
 
-            # AI chooses best move using Minimax
-            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+            # Let AI choose move using minimax (with or without alpha-beta)
+            move = self.get_ai_move(
+                self.current_game_state,
+                depth=depth,
+                heuristic=heuristic,  # ✅ Pass heuristic explicitly
+                max_time=max_time,
+                use_alpha_beta=use_alpha_beta
+            )
 
             if move == "GAME_OVER":
                 break  # No valid moves available
-            
-            # Print the AI's chosen move
+
+            # Print move and apply
             print(f"AI ({self.current_game_state['turn']}) chose: {self.convert_move_to_notation(move)}")
-
-            # Apply the move and display new board state
             self.make_move(self.current_game_state, move)
-            self.display_board(self.current_game_state)  # Show board after move
-            time.sleep(1)  # Pause briefly for readability
+            self.display_board(self.current_game_state)
+            time.sleep(1)  # Optional delay for readability
 
-        
-
-        # **Handle win or draw separately**
+        # Game over message
         game_over, winner = self.is_terminal(self.current_game_state)
         if game_over:
             if winner:
@@ -530,27 +535,32 @@ class MiniChess:
     def play_ai_game(self, mode, depth, max_time=5, max_turns=10, use_alpha_beta=True):
         """
         Runs a game where AI plays against AI, AI plays against a human, or Human plays against Human.
-        Uses heuristic e0 by default. 
+        Uses heuristic e0 by default.
         """
         print("Starting Game...")
 
-        # Default heuristic: e0
-        self.evaluate_board = self.evaluate_board  # Keep e0 as default
-
         # Ask for heuristics only if AI is involved
+        heuristic_choice = "e0"  # Default heuristic
         if mode in ["H-AI", "AI-H"]:
             heuristic_choice = input("Choose heuristic (e0 for basic piece values, e1 for positional advantage, e2 for aggressive captures): ").strip().lower()
-            if heuristic_choice == "e1":
-                self.evaluate_board = self.evaluate_board_e1
-            elif heuristic_choice == "e2":
-                self.evaluate_board = self.evaluate_board_e2
-            elif heuristic_choice != "e0":
+            if heuristic_choice not in ["e0", "e1", "e2"]:
                 print("Invalid choice! Defaulting to e0.")
+                heuristic_choice = "e0"
+
+        # ✅ Ensure correct heuristic is set
+        if heuristic_choice == "e1":
+            self.evaluate_board = self.evaluate_board_e1
+        elif heuristic_choice == "e2":
+            self.evaluate_board = self.evaluate_board_e2
+        else:
+            self.evaluate_board = self.evaluate_board  # Default to e0
+
+        print(f"Using heuristic: {heuristic_choice}")  # Debugging print
 
         # AI moves first if AI-H mode
         if mode == "AI-H":
             self.display_board(self.current_game_state)
-            move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+            move = self.get_ai_move(self.current_game_state, depth, heuristic=heuristic_choice, max_time=max_time, use_alpha_beta=use_alpha_beta)
             print(f"AI (White) chose: {self.convert_move_to_notation(move)}")
             self.make_move(self.current_game_state, move)
 
@@ -570,7 +580,7 @@ class MiniChess:
                     print("Invalid move. Try again.")
                     continue
 
-            if mode == "H-AI":
+            elif mode == "H-AI":
                 if self.current_game_state["turn"] == "white":  # Human starts in H-AI
                     move = input("Enter your move (e.g., B2 B3): ")
                     move = self.parse_input(move)
@@ -578,7 +588,7 @@ class MiniChess:
                         print("Invalid move. Try again.")
                         continue
                 else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+                    move = self.get_ai_move(self.current_game_state, depth, heuristic=heuristic_choice, max_time=max_time, use_alpha_beta=use_alpha_beta)
                     print(f"AI selected move: {self.convert_move_to_notation(move)}")
 
             elif mode == "AI-H":  # AI started first, now human plays
@@ -589,7 +599,7 @@ class MiniChess:
                         print("Invalid move. Try again.")
                         continue
                 else:  # AI moves as Black
-                    move = self.get_ai_move(self.current_game_state, depth, max_time=max_time, use_alpha_beta=use_alpha_beta)
+                    move = self.get_ai_move(self.current_game_state, depth, heuristic=heuristic_choice, max_time=max_time, use_alpha_beta=use_alpha_beta)
                     print(f"AI selected move: {self.convert_move_to_notation(move)}")
 
             self.make_move(self.current_game_state, move)
@@ -601,21 +611,22 @@ class MiniChess:
                     print(f"{self.current_game_state['winner'].capitalize()} wins the game!")
                 break
 
-    def get_ai_move(self, game_state, depth=3, heuristic="e1", max_time=5, use_alpha_beta=True):
+    def get_ai_move(self, game_state, depth=3, heuristic="e0", max_time=5, use_alpha_beta=True):
         """
         AI selects the best move within a given time limit.
         - Uses minimax or alpha-beta pruning based on use_alpha_beta.
         - Stops searching if max_time is reached.
         - Prints time taken and nodes explored.
         """
-        self.nodes_explored = 0  # Reset node counter for this move
+        self.nodes_explored = 0  # Reset node counter
 
+        # Fix: Ensure correct heuristic is assigned
         if heuristic == "e1":
             self.evaluate_board = self.evaluate_board_e1
         elif heuristic == "e2":
             self.evaluate_board = self.evaluate_board_e2
-        else:
-            self.evaluate_board = self.evaluate_board  # Default e0
+        else:  # Default to e0
+            self.evaluate_board = self.evaluate_board  
 
         valid_moves = self.valid_moves(game_state)
         if not valid_moves:
@@ -625,38 +636,34 @@ class MiniChess:
         best_move = None
         best_value = float('-inf') if game_state["turn"] == "white" else float('inf')
 
-        start_time = time.time()  # Start timing just before Minimax call
+        start_time = time.time()
 
         for move in valid_moves:
-            new_state = copy.deepcopy(game_state)
-            self.make_move(new_state, move, simulated=True)
-
-            # Measure time spent on each move and stop if exceeded
             if time.time() - start_time > max_time:
                 print(f"AI timeout! Selecting best move so far ({time.time() - start_time:.4f} sec).")
                 break
 
-            # Call Minimax or Minimax without pruning
+            new_state = copy.deepcopy(game_state)
+            self.make_move(new_state, move, simulated=True)
+
+            # ✅ Fix: Ensure the correct heuristic is used in evaluation
             if use_alpha_beta:
                 eval_score, _ = self.minimax(new_state, depth, -math.inf, math.inf, game_state["turn"] == "white")
             else:
                 eval_score, _ = self.minimax_without_pruning(new_state, depth, game_state["turn"] == "white")
 
-            # Update best move based on evaluation
             if (game_state["turn"] == "white" and eval_score > best_value) or \
             (game_state["turn"] == "black" and eval_score < best_value):
                 best_value = eval_score
                 best_move = move
 
-        end_time = time.time()  # ✅ Stop timing after Minimax completes
-        elapsed_time = end_time - start_time  # ✅ Calculate time taken
+        elapsed_time = time.time() - start_time
 
-        # Print results for comparison
         print(f"AI ({game_state['turn']}) took {elapsed_time:.4f} seconds to select a move.")
         print(f"AI explored {self.nodes_explored} nodes using {'Alpha-Beta Pruning' if use_alpha_beta else 'Standard Minimax'}.")
+        print(f"Using heuristic: {heuristic}")  # ✅ Debugging line to verify heuristic selection
 
         return best_move
-
 
     def is_valid_king(self, start, end):
         """
