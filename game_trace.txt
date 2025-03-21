@@ -1,3 +1,163 @@
 Mini Chess Game Trace
 Mode: Human vs Human
 
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 13
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 26
+c) Cumulative % states explored by depth:
+   Depth 0: 200.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 10
+b) Cumulative states explored by depth:
+   Depth 0: 36
+c) Cumulative % states explored by depth:
+   Depth 0: 360.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 11
+b) Cumulative states explored by depth:
+   Depth 0: 47
+c) Cumulative % states explored by depth:
+   Depth 0: 427.3%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 11
+b) Cumulative states explored by depth:
+   Depth 0: 58
+c) Cumulative % states explored by depth:
+   Depth 0: 527.3%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 12
+b) Cumulative states explored by depth:
+   Depth 0: 70
+c) Cumulative % states explored by depth:
+   Depth 0: 583.3%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 8
+b) Cumulative states explored by depth:
+   Depth 0: 78
+c) Cumulative % states explored by depth:
+   Depth 0: 975.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 14
+b) Cumulative states explored by depth:
+   Depth 0: 92
+c) Cumulative % states explored by depth:
+   Depth 0: 657.1%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 7
+b) Cumulative states explored by depth:
+   Depth 0: 99
+c) Cumulative % states explored by depth:
+   Depth 0: 1414.3%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 17
+b) Cumulative states explored by depth:
+   Depth 0: 116
+c) Cumulative % states explored by depth:
+   Depth 0: 682.4%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 13
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 13
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 8
+b) Cumulative states explored by depth:
+   Depth 0: 8
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 15
+b) Cumulative states explored by depth:
+   Depth 0: 15
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 13
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 13
+b) Cumulative states explored by depth:
+   Depth 0: 13
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 19
+b) Cumulative states explored by depth:
+   Depth 0: 19
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 11
+b) Cumulative states explored by depth:
+   Depth 0: 11
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 19
+b) Cumulative states explored by depth:
+   Depth 0: 19
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00
+
+ AI Cumulative Statistics:
+a) Cumulative states explored: 11
+b) Cumulative states explored by depth:
+   Depth 0: 11
+c) Cumulative % states explored by depth:
+   Depth 0: 100.0%
+d) Average branching factor: 0.00

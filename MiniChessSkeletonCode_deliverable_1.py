@@ -702,6 +702,8 @@ class MiniChess:
         """
         start_time = time.time()
         self.nodes_explored = 0  # Reset node counter
+        self.nodes_explored = 0
+        self.depth_stats = {}
 
         # Ensure correct heuristic is assigned
         if heuristic == "e1":
@@ -1011,26 +1013,32 @@ class MiniChess:
                     break
 
     def print_cumulative_stats(self):
-        print("\n AI Cumulative Statistics:")
+        stats_output = []
 
-        # a) Total states
-        print(f"a) Cumulative states explored: {self.nodes_explored:,}")
+        stats_output.append("\n AI Cumulative Statistics:")
+        stats_output.append(f"a) Cumulative states explored: {self.nodes_explored:,}")
 
-        # b) States per depth
-        print("b) Cumulative states explored by depth:")
+        stats_output.append("b) Cumulative states explored by depth:")
         for d in sorted(self.depth_stats):
             count = self.depth_stats[d]
-            print(f"   Depth {d}: {count:,}")
+            stats_output.append(f"   Depth {d}: {count:,}")
 
-        # c) Percentages per depth
-        print("c) Cumulative % states explored by depth:")
+        stats_output.append("c) Cumulative % states explored by depth:")
         for d in sorted(self.depth_stats):
             percent = (self.depth_stats[d] / self.nodes_explored) * 100
-            print(f"   Depth {d}: {percent:.1f}%")
+            stats_output.append(f"   Depth {d}: {percent:.1f}%")
 
-        # d) Average branching factor
         avg_branching = self.total_branching / self.total_nodes if self.total_nodes > 0 else 0
-        print(f"d) Average branching factor: {avg_branching:.2f}")
+        stats_output.append(f"d) Average branching factor: {avg_branching:.2f}")
+
+        # Print to terminal
+        for line in stats_output:
+            print(line)
+
+        # Append to game_trace.txt
+        with open("game_trace.txt", "a") as f:
+            f.write("\n".join(stats_output))
+            f.write("\n")
 
 
 if __name__ == "__main__":
