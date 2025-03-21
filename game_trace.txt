@@ -83,7 +83,8 @@ c) Cumulative % states explored by depth:
 d) Average branching factor: 0.00
 
  AI Cumulative Statistics:
-a) Cumulative states explored: 13
+a) Cumulative states explored: Remove-Item -Recurse -Force .git\rebase-merge
+13
 b) Cumulative states explored by depth:
    Depth 0: 13
 c) Cumulative % states explored by depth:
