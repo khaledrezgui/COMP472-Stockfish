@@ -23,18 +23,19 @@ To Play: (H-H MODE)
 - On your turn, move a single piece as follows :
     ( B1 B2 ) where B1 represents the piece you wish to move and B2 represents the
      square you wish to land on.
-- To win: Capture your opponents king !
-- If more than 10 turns were made and no pieces were captured, a draw is called.
+- To win: Capture your opponent's king!
+- A draw is called if more than 10 turns were made and no pieces were captured.
 
 To Play :( AI-AI, AI-H, H-AI)
 - Run the game
 - Follow the menu instructions to switch between modes and heuristics
-- Choose your depth, time limit , and turn count
+- Choose your depth, time limit, and turn count
 - To win: Capture AI's king
 - If more than your selected turns were made and no pieces were captured, a draw is called 
   
   ### Installation
-  To run this project, you need Python installed on your system.
+  To run this project, you need to install Python on your system.
+  ``` python MiniChessSkeletonCode_deliverable_1.py ```
 1. Clone the repository
    ``` git clone https://github.com/khaledrezgui/COMP472-Stockfish.git ```
 2. Navigate to the project folder
