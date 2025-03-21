@@ -1,0 +1,34 @@
+Mini Chess AI-H Game Trace
+Alpha-Beta: True
+Timeout: 5.0 sec
+Max Turns: 10
+
+
+TURN 1 (White to move - AI)
+AI (White) chose: D1 D4
+Search Score: 1
+
+TURN 1 (Black to move)
+Black to move
+Human (black) chose: B5 B4
+bK . bB bN .
+. bQ bp wQ .
+. . . . .
+. wp wp . .
+. wN wB . wK
+Heuristic score: 1
+
+TURN 2 (White to move)
+White to move
+AI (White) chose: D4 D5
+Search Score: 4
+Time for this action: 0.0141 sec
+bK . bB wQ .
+. bQ bp . .
+. . . . .
+. wp wp . .
+. wN wB . wK
+Heuristic score: 4
+
+TURN 3 (Black to move)
+Black to move
